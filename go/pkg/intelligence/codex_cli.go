@@ -126,6 +126,10 @@ func (p *codexCliProvider) Reason(ctx context.Context, prompt string, history []
 			if parseErr == nil && text != "" {
 				return decision.NewResponse(text, defaultConfidence(), decision.TokenUsage{}), nil
 			}
+			// Include the JSONL parse error (often contains the real reason).
+			if parseErr != nil {
+				return decision.Response{}, fmt.Errorf("codex CLI error: %w (%v)", err, parseErr)
+			}
 		}
 		return decision.Response{}, fmt.Errorf("codex CLI error: %w\nstderr: %s", err, stderr.String())
 	}
@@ -184,6 +188,9 @@ func (p *codexCliProvider) Operate(ctx context.Context, task decision.OperateTas
 			text, _, parseErr := parseCodexJSONL(stdout.Bytes())
 			if parseErr == nil && text != "" {
 				return decision.OperateResult{Summary: text}, nil
+			}
+			if parseErr != nil {
+				return decision.OperateResult{}, fmt.Errorf("codex CLI operate error: %w (%v)", err, parseErr)
 			}
 		}
 		return decision.OperateResult{}, fmt.Errorf("codex CLI operate error: %w\nstderr: %s", err, stderr.String())

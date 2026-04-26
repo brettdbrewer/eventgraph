@@ -153,9 +153,9 @@ type openaiResponse struct {
 }
 
 type openaiErrorDetail struct {
-	Message string `json:"message"`
-	Type    string `json:"type"`
-	Code    string `json:"code"`
+	Message string          `json:"message"`
+	Type    string          `json:"type"`
+	Code    json.RawMessage `json:"code"` // string or number depending on provider
 }
 
 func (p *openaiProvider) Reason(ctx context.Context, prompt string, history []event.Event) (decision.Response, error) {
