@@ -30,11 +30,12 @@ type openaiProvider struct {
 
 // Well-known OpenAI-compatible base URLs.
 const (
-	openaiBaseURL   = "https://api.openai.com/v1"
-	xaiBaseURL      = "https://api.x.ai/v1"
-	groqBaseURL     = "https://api.groq.com/openai/v1"
-	togetherBaseURL = "https://api.together.xyz/v1"
-	ollamaBaseURL   = "http://localhost:11434/v1"
+	openaiBaseURL      = "https://api.openai.com/v1"
+	xaiBaseURL         = "https://api.x.ai/v1"
+	groqBaseURL        = "https://api.groq.com/openai/v1"
+	togetherBaseURL    = "https://api.together.xyz/v1"
+	ollamaBaseURL      = "http://localhost:11434/v1"
+	openrouterBaseURL  = "https://openrouter.ai/api/v1"
 )
 
 func newOpenAICompatibleProvider(cfg Config) (*openaiProvider, error) {
@@ -83,6 +84,13 @@ func newOpenAICompatibleProvider(cfg Config) (*openaiProvider, error) {
 				host = "http://localhost:11434"
 			}
 			baseURL = host + "/v1"
+		}
+	case "openrouter":
+		if baseURL == "" {
+			baseURL = openrouterBaseURL
+		}
+		if apiKey == "" {
+			apiKey = os.Getenv("OPENROUTER_API_KEY")
 		}
 	case "openai-compatible":
 		// Auto-detect from env vars when no explicit key/URL.
@@ -260,6 +268,9 @@ func detectOpenAIProvider() (apiKey string, baseURL string, name string) {
 	if key := os.Getenv("TOGETHER_API_KEY"); key != "" {
 		return key, togetherBaseURL, "together"
 	}
+	if key := os.Getenv("OPENROUTER_API_KEY"); key != "" {
+		return key, openrouterBaseURL, "openrouter"
+	}
 	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
 		return key, openaiBaseURL, "openai"
 	}
@@ -286,6 +297,8 @@ func inferProviderName(baseURL string) string {
 		return "together"
 	case strings.Contains(lower, "localhost") || strings.Contains(lower, "127.0.0.1"):
 		return "ollama"
+	case strings.Contains(lower, "openrouter"):
+		return "openrouter"
 	case strings.Contains(lower, "fireworks"):
 		return "fireworks"
 	default:

@@ -74,10 +74,10 @@ func New(cfg Config) (Provider, error) {
 		return newClaudeSDKProvider(cfg)
 	case "codex-cli":
 		return newCodexCliProvider(cfg)
-	case "openai-compatible", "openai", "xai", "groq", "together", "ollama":
+	case "openai-compatible", "openai", "xai", "groq", "together", "ollama", "openrouter":
 		return newOpenAICompatibleProvider(cfg)
 	default:
-		return nil, fmt.Errorf("unknown provider: %q (supported: anthropic, claude-cli, codex-cli, openai-compatible, openai, xai, groq, together, ollama)", cfg.Provider)
+		return nil, fmt.Errorf("unknown provider: %q (supported: anthropic, claude-cli, codex-cli, openai-compatible, openai, openrouter, xai, groq, together, ollama)", cfg.Provider)
 	}
 }
 
