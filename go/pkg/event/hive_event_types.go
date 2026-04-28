@@ -16,6 +16,15 @@ var (
 	EventTypeSpecParsed    = types.MustEventType("hive.spec.parsed")
 	EventTypeSpecAssigned  = types.MustEventType("hive.spec.assigned")
 	EventTypeSpecCompleted = types.MustEventType("hive.spec.completed")
+
+	// Requirements refinery provenance. These events are intentionally
+	// finer-grained than the generic site.op.* bridge so humans and agents
+	// can replay why an intake landed in a state and what gate evidence was
+	// available at each transition.
+	EventTypeRefineryIntakeReceived    = types.MustEventType("refinery.intake.received")
+	EventTypeRefineryArtifactAttached  = types.MustEventType("refinery.artifact.attached")
+	EventTypeRefineryIntakeClassified  = types.MustEventType("refinery.intake.classified")
+	EventTypeRefineryStateTransitioned = types.MustEventType("refinery.state.transitioned")
 )
 
 // AllHiveEventTypes returns all registered hive event types.
@@ -30,5 +39,9 @@ func AllHiveEventTypes() []types.EventType {
 		EventTypeSpecParsed,
 		EventTypeSpecAssigned,
 		EventTypeSpecCompleted,
+		EventTypeRefineryIntakeReceived,
+		EventTypeRefineryArtifactAttached,
+		EventTypeRefineryIntakeClassified,
+		EventTypeRefineryStateTransitioned,
 	}
 }

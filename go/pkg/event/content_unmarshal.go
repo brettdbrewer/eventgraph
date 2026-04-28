@@ -177,6 +177,12 @@ func init() {
 		"hive.spec.assigned":  unmarshal[SpecAssignedContent],
 		"hive.spec.completed": unmarshal[SpecCompletedContent],
 
+		// Refinery
+		"refinery.intake.received":    unmarshal[RefineryIntakeReceivedContent],
+		"refinery.artifact.attached":  unmarshal[RefineryArtifactAttachedContent],
+		"refinery.intake.classified":  unmarshal[RefineryIntakeClassifiedContent],
+		"refinery.state.transitioned": unmarshal[RefineryStateTransitionedContent],
+
 		// Site
 		"site.op.received":   unmarshal[SiteOpReceivedContent],
 		"site.op.translated": unmarshal[SiteOpTranslatedContent],

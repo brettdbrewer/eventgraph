@@ -228,16 +228,16 @@ func TestConditionOperatorIsValid(t *testing.T) {
 
 type edgeTypeCollector struct{ visited string }
 
-func (c *edgeTypeCollector) VisitTrust()        { c.visited = "Trust" }
-func (c *edgeTypeCollector) VisitAuthority()    { c.visited = "Authority" }
-func (c *edgeTypeCollector) VisitSubscription() { c.visited = "Subscription" }
-func (c *edgeTypeCollector) VisitEndorsement()  { c.visited = "Endorsement" }
-func (c *edgeTypeCollector) VisitDelegation()   { c.visited = "Delegation" }
-func (c *edgeTypeCollector) VisitCausation()    { c.visited = "Causation" }
-func (c *edgeTypeCollector) VisitReference()    { c.visited = "Reference" }
-func (c *edgeTypeCollector) VisitChannel()      { c.visited = "Channel" }
-func (c *edgeTypeCollector) VisitAnnotation()       { c.visited = "Annotation" }
-func (c *edgeTypeCollector) VisitAcknowledgement()  { c.visited = "Acknowledgement" }
+func (c *edgeTypeCollector) VisitTrust()           { c.visited = "Trust" }
+func (c *edgeTypeCollector) VisitAuthority()       { c.visited = "Authority" }
+func (c *edgeTypeCollector) VisitSubscription()    { c.visited = "Subscription" }
+func (c *edgeTypeCollector) VisitEndorsement()     { c.visited = "Endorsement" }
+func (c *edgeTypeCollector) VisitDelegation()      { c.visited = "Delegation" }
+func (c *edgeTypeCollector) VisitCausation()       { c.visited = "Causation" }
+func (c *edgeTypeCollector) VisitReference()       { c.visited = "Reference" }
+func (c *edgeTypeCollector) VisitChannel()         { c.visited = "Channel" }
+func (c *edgeTypeCollector) VisitAnnotation()      { c.visited = "Annotation" }
+func (c *edgeTypeCollector) VisitAcknowledgement() { c.visited = "Acknowledgement" }
 
 func TestEdgeTypeVisitor(t *testing.T) {
 	tests := []struct {
@@ -267,8 +267,8 @@ func TestEdgeTypeVisitor(t *testing.T) {
 type authorityLevelCollector struct{ visited string }
 
 func (c *authorityLevelCollector) VisitRequired()     { c.visited = "Required" }
-func (c *authorityLevelCollector) VisitRecommended()   { c.visited = "Recommended" }
-func (c *authorityLevelCollector) VisitNotification()  { c.visited = "Notification" }
+func (c *authorityLevelCollector) VisitRecommended()  { c.visited = "Recommended" }
+func (c *authorityLevelCollector) VisitNotification() { c.visited = "Notification" }
 
 func TestAuthorityLevelVisitor(t *testing.T) {
 	tests := []struct {
@@ -365,47 +365,109 @@ func TestEventContentTypeName(t *testing.T) {
 // contentVisitorCollector implements EventContentVisitor to track which method was called.
 type contentVisitorCollector struct{ visited string }
 
-func (c *contentVisitorCollector) VisitTrustUpdated(TrustUpdatedContent)             { c.visited = "trust.updated" }
-func (c *contentVisitorCollector) VisitTrustScore(TrustScoreContent)                 { c.visited = "trust.score" }
-func (c *contentVisitorCollector) VisitTrustDecayed(TrustDecayedContent)             { c.visited = "trust.decayed" }
-func (c *contentVisitorCollector) VisitAuthorityRequested(AuthorityRequestContent)    { c.visited = "authority.requested" }
-func (c *contentVisitorCollector) VisitAuthorityResolved(AuthorityResolvedContent)    { c.visited = "authority.resolved" }
-func (c *contentVisitorCollector) VisitAuthorityDelegated(AuthorityDelegatedContent)  { c.visited = "authority.delegated" }
-func (c *contentVisitorCollector) VisitAuthorityRevoked(AuthorityRevokedContent)      { c.visited = "authority.revoked" }
-func (c *contentVisitorCollector) VisitAuthorityTimeout(AuthorityTimeoutContent)      { c.visited = "authority.timeout" }
-func (c *contentVisitorCollector) VisitActorRegistered(ActorRegisteredContent)        { c.visited = "actor.registered" }
-func (c *contentVisitorCollector) VisitActorSuspended(ActorSuspendedContent)          { c.visited = "actor.suspended" }
-func (c *contentVisitorCollector) VisitActorMemorial(ActorMemorialContent)            { c.visited = "actor.memorial" }
-func (c *contentVisitorCollector) VisitEdgeCreated(EdgeCreatedContent)                { c.visited = "edge.created" }
-func (c *contentVisitorCollector) VisitEdgeSuperseded(EdgeSupersededContent)          { c.visited = "edge.superseded" }
-func (c *contentVisitorCollector) VisitViolationDetected(ViolationDetectedContent)    { c.visited = "violation.detected" }
-func (c *contentVisitorCollector) VisitChainVerified(ChainVerifiedContent)            { c.visited = "chain.verified" }
-func (c *contentVisitorCollector) VisitChainBroken(ChainBrokenContent)               { c.visited = "chain.broken" }
-func (c *contentVisitorCollector) VisitBootstrap(BootstrapContent)                    { c.visited = "system.bootstrapped" }
-func (c *contentVisitorCollector) VisitClockTick(ClockTickContent)                    { c.visited = "clock.tick" }
-func (c *contentVisitorCollector) VisitHealthReport(HealthReportContent)              { c.visited = "health.report" }
-func (c *contentVisitorCollector) VisitBranchProposed(BranchProposedContent)          { c.visited = "decision.branch.proposed" }
-func (c *contentVisitorCollector) VisitBranchInserted(BranchInsertedContent)          { c.visited = "decision.branch.inserted" }
-func (c *contentVisitorCollector) VisitCostReport(CostReportContent)                 { c.visited = "decision.cost.report" }
-func (c *contentVisitorCollector) VisitEGIPHelloSent(EGIPHelloSentContent)            { c.visited = "egip.hello.sent" }
-func (c *contentVisitorCollector) VisitEGIPHelloReceived(EGIPHelloReceivedContent)    { c.visited = "egip.hello.received" }
-func (c *contentVisitorCollector) VisitEGIPMessageSent(EGIPMessageSentContent)        { c.visited = "egip.message.sent" }
-func (c *contentVisitorCollector) VisitEGIPMessageReceived(EGIPMessageReceivedContent) { c.visited = "egip.message.received" }
-func (c *contentVisitorCollector) VisitEGIPReceiptSent(EGIPReceiptSentContent)        { c.visited = "egip.receipt.sent" }
-func (c *contentVisitorCollector) VisitEGIPReceiptReceived(EGIPReceiptReceivedContent) { c.visited = "egip.receipt.received" }
-func (c *contentVisitorCollector) VisitEGIPProofRequested(EGIPProofRequestedContent)  { c.visited = "egip.proof.requested" }
-func (c *contentVisitorCollector) VisitEGIPProofReceived(EGIPProofReceivedContent)    { c.visited = "egip.proof.received" }
-func (c *contentVisitorCollector) VisitEGIPTreatyProposed(EGIPTreatyProposedContent)  { c.visited = "egip.treaty.proposed" }
-func (c *contentVisitorCollector) VisitEGIPTreatyActive(EGIPTreatyActiveContent)      { c.visited = "egip.treaty.active" }
-func (c *contentVisitorCollector) VisitEGIPTrustUpdated(EGIPTrustUpdatedContent)      { c.visited = "egip.trust.updated" }
-func (c *contentVisitorCollector) VisitGrammarEmit(GrammarEmitContent)                { c.visited = "grammar.emit" }
-func (c *contentVisitorCollector) VisitGrammarRespond(GrammarRespondContent)          { c.visited = "grammar.respond" }
-func (c *contentVisitorCollector) VisitGrammarDerive(GrammarDeriveContent)            { c.visited = "grammar.derive" }
-func (c *contentVisitorCollector) VisitGrammarExtend(GrammarExtendContent)            { c.visited = "grammar.extend" }
-func (c *contentVisitorCollector) VisitGrammarRetract(GrammarRetractContent)          { c.visited = "grammar.retract" }
-func (c *contentVisitorCollector) VisitGrammarAnnotate(GrammarAnnotateContent)        { c.visited = "grammar.annotate" }
-func (c *contentVisitorCollector) VisitGrammarMerge(GrammarMergeContent)              { c.visited = "grammar.merge" }
-func (c *contentVisitorCollector) VisitGrammarConsent(GrammarConsentContent)          { c.visited = "grammar.consent" }
+func (c *contentVisitorCollector) VisitTrustUpdated(TrustUpdatedContent) { c.visited = "trust.updated" }
+func (c *contentVisitorCollector) VisitTrustScore(TrustScoreContent)     { c.visited = "trust.score" }
+func (c *contentVisitorCollector) VisitTrustDecayed(TrustDecayedContent) { c.visited = "trust.decayed" }
+func (c *contentVisitorCollector) VisitAuthorityRequested(AuthorityRequestContent) {
+	c.visited = "authority.requested"
+}
+func (c *contentVisitorCollector) VisitAuthorityResolved(AuthorityResolvedContent) {
+	c.visited = "authority.resolved"
+}
+func (c *contentVisitorCollector) VisitAuthorityDelegated(AuthorityDelegatedContent) {
+	c.visited = "authority.delegated"
+}
+func (c *contentVisitorCollector) VisitAuthorityRevoked(AuthorityRevokedContent) {
+	c.visited = "authority.revoked"
+}
+func (c *contentVisitorCollector) VisitAuthorityTimeout(AuthorityTimeoutContent) {
+	c.visited = "authority.timeout"
+}
+func (c *contentVisitorCollector) VisitActorRegistered(ActorRegisteredContent) {
+	c.visited = "actor.registered"
+}
+func (c *contentVisitorCollector) VisitActorSuspended(ActorSuspendedContent) {
+	c.visited = "actor.suspended"
+}
+func (c *contentVisitorCollector) VisitActorMemorial(ActorMemorialContent) {
+	c.visited = "actor.memorial"
+}
+func (c *contentVisitorCollector) VisitEdgeCreated(EdgeCreatedContent) { c.visited = "edge.created" }
+func (c *contentVisitorCollector) VisitEdgeSuperseded(EdgeSupersededContent) {
+	c.visited = "edge.superseded"
+}
+func (c *contentVisitorCollector) VisitViolationDetected(ViolationDetectedContent) {
+	c.visited = "violation.detected"
+}
+func (c *contentVisitorCollector) VisitChainVerified(ChainVerifiedContent) {
+	c.visited = "chain.verified"
+}
+func (c *contentVisitorCollector) VisitChainBroken(ChainBrokenContent)   { c.visited = "chain.broken" }
+func (c *contentVisitorCollector) VisitBootstrap(BootstrapContent)       { c.visited = "system.bootstrapped" }
+func (c *contentVisitorCollector) VisitClockTick(ClockTickContent)       { c.visited = "clock.tick" }
+func (c *contentVisitorCollector) VisitHealthReport(HealthReportContent) { c.visited = "health.report" }
+func (c *contentVisitorCollector) VisitBranchProposed(BranchProposedContent) {
+	c.visited = "decision.branch.proposed"
+}
+func (c *contentVisitorCollector) VisitBranchInserted(BranchInsertedContent) {
+	c.visited = "decision.branch.inserted"
+}
+func (c *contentVisitorCollector) VisitCostReport(CostReportContent) {
+	c.visited = "decision.cost.report"
+}
+func (c *contentVisitorCollector) VisitEGIPHelloSent(EGIPHelloSentContent) {
+	c.visited = "egip.hello.sent"
+}
+func (c *contentVisitorCollector) VisitEGIPHelloReceived(EGIPHelloReceivedContent) {
+	c.visited = "egip.hello.received"
+}
+func (c *contentVisitorCollector) VisitEGIPMessageSent(EGIPMessageSentContent) {
+	c.visited = "egip.message.sent"
+}
+func (c *contentVisitorCollector) VisitEGIPMessageReceived(EGIPMessageReceivedContent) {
+	c.visited = "egip.message.received"
+}
+func (c *contentVisitorCollector) VisitEGIPReceiptSent(EGIPReceiptSentContent) {
+	c.visited = "egip.receipt.sent"
+}
+func (c *contentVisitorCollector) VisitEGIPReceiptReceived(EGIPReceiptReceivedContent) {
+	c.visited = "egip.receipt.received"
+}
+func (c *contentVisitorCollector) VisitEGIPProofRequested(EGIPProofRequestedContent) {
+	c.visited = "egip.proof.requested"
+}
+func (c *contentVisitorCollector) VisitEGIPProofReceived(EGIPProofReceivedContent) {
+	c.visited = "egip.proof.received"
+}
+func (c *contentVisitorCollector) VisitEGIPTreatyProposed(EGIPTreatyProposedContent) {
+	c.visited = "egip.treaty.proposed"
+}
+func (c *contentVisitorCollector) VisitEGIPTreatyActive(EGIPTreatyActiveContent) {
+	c.visited = "egip.treaty.active"
+}
+func (c *contentVisitorCollector) VisitEGIPTrustUpdated(EGIPTrustUpdatedContent) {
+	c.visited = "egip.trust.updated"
+}
+func (c *contentVisitorCollector) VisitGrammarEmit(GrammarEmitContent) { c.visited = "grammar.emit" }
+func (c *contentVisitorCollector) VisitGrammarRespond(GrammarRespondContent) {
+	c.visited = "grammar.respond"
+}
+func (c *contentVisitorCollector) VisitGrammarDerive(GrammarDeriveContent) {
+	c.visited = "grammar.derive"
+}
+func (c *contentVisitorCollector) VisitGrammarExtend(GrammarExtendContent) {
+	c.visited = "grammar.extend"
+}
+func (c *contentVisitorCollector) VisitGrammarRetract(GrammarRetractContent) {
+	c.visited = "grammar.retract"
+}
+func (c *contentVisitorCollector) VisitGrammarAnnotate(GrammarAnnotateContent) {
+	c.visited = "grammar.annotate"
+}
+func (c *contentVisitorCollector) VisitGrammarMerge(GrammarMergeContent) { c.visited = "grammar.merge" }
+func (c *contentVisitorCollector) VisitGrammarConsent(GrammarConsentContent) {
+	c.visited = "grammar.consent"
+}
 
 func TestEventContentVisitorDispatch(t *testing.T) {
 	contents := []EventContent{
@@ -440,16 +502,26 @@ func TestEventContentVisitorDispatch(t *testing.T) {
 
 type edgeMetadataCollector struct{ visited EdgeType }
 
-func (c *edgeMetadataCollector) VisitTrust(TrustEdgeMetadata)               { c.visited = EdgeTypeTrust }
-func (c *edgeMetadataCollector) VisitAuthority(AuthorityEdgeMetadata)       { c.visited = EdgeTypeAuthority }
-func (c *edgeMetadataCollector) VisitSubscription(SubscriptionEdgeMetadata) { c.visited = EdgeTypeSubscription }
-func (c *edgeMetadataCollector) VisitEndorsement(EndorsementEdgeMetadata)   { c.visited = EdgeTypeEndorsement }
-func (c *edgeMetadataCollector) VisitDelegation(DelegationEdgeMetadata)     { c.visited = EdgeTypeDelegation }
-func (c *edgeMetadataCollector) VisitCausation(CausationEdgeMetadata)       { c.visited = EdgeTypeCausation }
-func (c *edgeMetadataCollector) VisitReference(ReferenceEdgeMetadata)       { c.visited = EdgeTypeReference }
-func (c *edgeMetadataCollector) VisitChannel(ChannelEdgeMetadata)           { c.visited = EdgeTypeChannel }
-func (c *edgeMetadataCollector) VisitAnnotation(AnnotationEdgeMetadata)             { c.visited = EdgeTypeAnnotation }
-func (c *edgeMetadataCollector) VisitAcknowledgement(AcknowledgementEdgeMetadata)   { c.visited = EdgeTypeAcknowledgement }
+func (c *edgeMetadataCollector) VisitTrust(TrustEdgeMetadata)         { c.visited = EdgeTypeTrust }
+func (c *edgeMetadataCollector) VisitAuthority(AuthorityEdgeMetadata) { c.visited = EdgeTypeAuthority }
+func (c *edgeMetadataCollector) VisitSubscription(SubscriptionEdgeMetadata) {
+	c.visited = EdgeTypeSubscription
+}
+func (c *edgeMetadataCollector) VisitEndorsement(EndorsementEdgeMetadata) {
+	c.visited = EdgeTypeEndorsement
+}
+func (c *edgeMetadataCollector) VisitDelegation(DelegationEdgeMetadata) {
+	c.visited = EdgeTypeDelegation
+}
+func (c *edgeMetadataCollector) VisitCausation(CausationEdgeMetadata) { c.visited = EdgeTypeCausation }
+func (c *edgeMetadataCollector) VisitReference(ReferenceEdgeMetadata) { c.visited = EdgeTypeReference }
+func (c *edgeMetadataCollector) VisitChannel(ChannelEdgeMetadata)     { c.visited = EdgeTypeChannel }
+func (c *edgeMetadataCollector) VisitAnnotation(AnnotationEdgeMetadata) {
+	c.visited = EdgeTypeAnnotation
+}
+func (c *edgeMetadataCollector) VisitAcknowledgement(AcknowledgementEdgeMetadata) {
+	c.visited = EdgeTypeAcknowledgement
+}
 
 func TestEdgeMetadataVisitorDispatch(t *testing.T) {
 	metadatas := []EdgeMetadata{
@@ -798,8 +870,8 @@ func TestHashChainLinking(t *testing.T) {
 func TestDefaultRegistry(t *testing.T) {
 	r := DefaultRegistry()
 	allTypes := r.AllTypes()
-	if len(allTypes) != 140 {
-		t.Errorf("expected 140 registered types, got %d", len(allTypes))
+	if len(allTypes) != 144 {
+		t.Errorf("expected 144 registered types, got %d", len(allTypes))
 	}
 	if !r.IsRegistered(EventTypeTrustUpdated) {
 		t.Error("trust.updated should be registered")
@@ -1212,8 +1284,8 @@ type rawJSONContent struct {
 	data     map[string]any
 }
 
-func (c rawJSONContent) EventTypeName() string         { return c.typeName }
-func (c rawJSONContent) Accept(v EventContentVisitor)  {} // not used in canonical form tests
+func (c rawJSONContent) EventTypeName() string        { return c.typeName }
+func (c rawJSONContent) Accept(v EventContentVisitor) {} // not used in canonical form tests
 func (c rawJSONContent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(c.data)
 }

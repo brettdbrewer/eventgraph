@@ -263,6 +263,33 @@ func TestHiveSpecUnmarshalersRegistered(t *testing.T) {
 	}
 }
 
+func TestDefaultRegistryContainsRefineryTypes(t *testing.T) {
+	r := DefaultRegistry()
+	for _, et := range []types.EventType{
+		EventTypeRefineryIntakeReceived,
+		EventTypeRefineryArtifactAttached,
+		EventTypeRefineryIntakeClassified,
+		EventTypeRefineryStateTransitioned,
+	} {
+		if !r.IsRegistered(et) {
+			t.Errorf("DefaultRegistry() missing %q", et.Value())
+		}
+	}
+}
+
+func TestRefineryUnmarshalersRegistered(t *testing.T) {
+	for _, name := range []string{
+		"refinery.intake.received",
+		"refinery.artifact.attached",
+		"refinery.intake.classified",
+		"refinery.state.transitioned",
+	} {
+		if !IsKnownEventType(name) {
+			t.Errorf("IsKnownEventType(%q) = false, want true", name)
+		}
+	}
+}
+
 // --- SpecOutcome enum ---
 
 func TestSpecOutcomeIsValid(t *testing.T) {
