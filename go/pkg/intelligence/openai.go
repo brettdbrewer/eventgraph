@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -236,8 +237,12 @@ func (p *openaiProvider) Reason(ctx context.Context, prompt string, history []ev
 		return decision.Response{}, fmt.Errorf("parse response: %w", err)
 	}
 
+	if os.Getenv("HIVE_DEBUG_OPENAI") != "" {
+		log.Printf("[openai-debug] %s/%s HTTP %d response: %s", p.providerName, p.model, resp.StatusCode, string(respBody))
+	}
+
 	if len(result.Choices) == 0 {
-		return decision.Response{}, fmt.Errorf("openai API returned no choices")
+		return decision.Response{}, fmt.Errorf("openai API returned no choices (HTTP %d, body: %.500s)", resp.StatusCode, string(respBody))
 	}
 
 	content := result.Choices[0].Message.Content
