@@ -27,7 +27,9 @@ jobs:
       - run: go vet ./...
       # Skip list tracks known pre-existing failures documented in CLAUDE.md.
       # Remove entries here when their tracking issues land a fix.
-      - run: go test -race -skip 'TestAgentEventTypeCount|TestIntegrationAnthropic' ./...
+      # TestNewClaudeCli* require the `claude` binary on PATH; same pattern
+      # would apply to any test that shells out to a CLI without mocking it.
+      - run: go test -race -skip 'TestAgentEventTypeCount|TestIntegrationAnthropic|TestNewClaudeCli' ./...
 
   python:
     name: Python
