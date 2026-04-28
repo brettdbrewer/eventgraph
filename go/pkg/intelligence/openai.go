@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -30,11 +31,12 @@ type openaiProvider struct {
 
 // Well-known OpenAI-compatible base URLs.
 const (
-	openaiBaseURL   = "https://api.openai.com/v1"
-	xaiBaseURL      = "https://api.x.ai/v1"
-	groqBaseURL     = "https://api.groq.com/openai/v1"
-	togetherBaseURL = "https://api.together.xyz/v1"
-	ollamaBaseURL   = "http://localhost:11434/v1"
+	openaiBaseURL      = "https://api.openai.com/v1"
+	xaiBaseURL         = "https://api.x.ai/v1"
+	groqBaseURL        = "https://api.groq.com/openai/v1"
+	togetherBaseURL    = "https://api.together.xyz/v1"
+	ollamaBaseURL      = "http://localhost:11434/v1"
+	openrouterBaseURL  = "https://openrouter.ai/api/v1"
 )
 
 func newOpenAICompatibleProvider(cfg Config) (*openaiProvider, error) {
@@ -83,6 +85,13 @@ func newOpenAICompatibleProvider(cfg Config) (*openaiProvider, error) {
 				host = "http://localhost:11434"
 			}
 			baseURL = host + "/v1"
+		}
+	case "openrouter":
+		if baseURL == "" {
+			baseURL = openrouterBaseURL
+		}
+		if apiKey == "" {
+			apiKey = os.Getenv("OPENROUTER_API_KEY")
 		}
 	case "openai-compatible":
 		// Auto-detect from env vars when no explicit key/URL.
@@ -145,9 +154,9 @@ type openaiResponse struct {
 }
 
 type openaiErrorDetail struct {
-	Message string `json:"message"`
-	Type    string `json:"type"`
-	Code    string `json:"code"`
+	Message string          `json:"message"`
+	Type    string          `json:"type"`
+	Code    json.RawMessage `json:"code"` // string or number depending on provider
 }
 
 func (p *openaiProvider) Reason(ctx context.Context, prompt string, history []event.Event) (decision.Response, error) {
@@ -228,8 +237,12 @@ func (p *openaiProvider) Reason(ctx context.Context, prompt string, history []ev
 		return decision.Response{}, fmt.Errorf("parse response: %w", err)
 	}
 
+	if os.Getenv("HIVE_DEBUG_OPENAI") != "" {
+		log.Printf("[openai-debug] %s/%s HTTP %d response: %s", p.providerName, p.model, resp.StatusCode, string(respBody))
+	}
+
 	if len(result.Choices) == 0 {
-		return decision.Response{}, fmt.Errorf("openai API returned no choices")
+		return decision.Response{}, fmt.Errorf("openai API returned no choices (HTTP %d, body: %.500s)", resp.StatusCode, string(respBody))
 	}
 
 	content := result.Choices[0].Message.Content
@@ -260,6 +273,9 @@ func detectOpenAIProvider() (apiKey string, baseURL string, name string) {
 	if key := os.Getenv("TOGETHER_API_KEY"); key != "" {
 		return key, togetherBaseURL, "together"
 	}
+	if key := os.Getenv("OPENROUTER_API_KEY"); key != "" {
+		return key, openrouterBaseURL, "openrouter"
+	}
 	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
 		return key, openaiBaseURL, "openai"
 	}
@@ -286,6 +302,8 @@ func inferProviderName(baseURL string) string {
 		return "together"
 	case strings.Contains(lower, "localhost") || strings.Contains(lower, "127.0.0.1"):
 		return "ollama"
+	case strings.Contains(lower, "openrouter"):
+		return "openrouter"
 	case strings.Contains(lower, "fireworks"):
 		return "fireworks"
 	default:
