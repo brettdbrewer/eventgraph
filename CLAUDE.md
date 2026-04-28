@@ -137,6 +137,9 @@ staticcheck ./...
 **Known pre-existing test failures** (do not fix unless explicitly assigned):
 - `TestAgentEventTypeCount` in `pkg/agent` — off-by-one from a recent PR, not yet fixed
 - `TestIntegrationAnthropic*` in `pkg/intelligence` — require a live Anthropic API key
+- `TestNewClaudeCli*` in `pkg/intelligence` — require the `claude` binary on `PATH` (passes locally for developers who have Claude Code installed; fails on bare CI runners). The proper fix is `t.Skip()` when `exec.LookPath("claude")` errors.
+
+CI skips these via `-skip 'TestAgentEventTypeCount|TestIntegrationAnthropic|TestNewClaudeCli'` in `.github/workflows/ci.yml`.
 
 ## Working in this Codebase
 
