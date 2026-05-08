@@ -6,6 +6,7 @@ from eventgraph.event import Event
 from eventgraph.primitive import (
     LIFECYCLE_ACTIVE,
     LIFECYCLE_ACTIVATING,
+    LIFECYCLE_DEACTIVATING,
     LIFECYCLE_DORMANT,
     LIFECYCLE_MEMORIAL,
     LIFECYCLE_PROCESSING,
@@ -57,9 +58,12 @@ class TestLifecycleTransitions:
     def test_valid_transitions(self):
         assert valid_transition(LIFECYCLE_DORMANT, LIFECYCLE_ACTIVATING)
         assert valid_transition(LIFECYCLE_ACTIVATING, LIFECYCLE_ACTIVE)
+        assert valid_transition(LIFECYCLE_ACTIVATING, LIFECYCLE_DORMANT)
         assert valid_transition(LIFECYCLE_ACTIVE, LIFECYCLE_PROCESSING)
+        assert valid_transition(LIFECYCLE_ACTIVE, LIFECYCLE_DEACTIVATING)
         assert valid_transition(LIFECYCLE_ACTIVE, LIFECYCLE_SUSPENDING)
         assert valid_transition(LIFECYCLE_ACTIVE, LIFECYCLE_MEMORIAL)
+        assert valid_transition(LIFECYCLE_DEACTIVATING, LIFECYCLE_DORMANT)
 
     def test_invalid_transitions(self):
         assert not valid_transition(LIFECYCLE_DORMANT, LIFECYCLE_ACTIVE)

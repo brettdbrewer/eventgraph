@@ -264,8 +264,6 @@ fn conformance_vectors_type_validation_valid() {
 
 // ── Lifecycle transitions ───────────────────────────────────────────────
 
-// "Deactivating" in the vectors has no clean mapping (impl uses Suspending->Suspended,
-// not Deactivating->Dormant), so we omit it and skip those transitions.
 fn parse_lifecycle_state(name: &str) -> Option<LifecycleState> {
     match name {
         "Dormant" => Some(LifecycleState::Dormant),
@@ -273,6 +271,7 @@ fn parse_lifecycle_state(name: &str) -> Option<LifecycleState> {
         "Active" => Some(LifecycleState::Active),
         "Processing" => Some(LifecycleState::Processing),
         "Emitting" => Some(LifecycleState::Emitting),
+        "Deactivating" => Some(LifecycleState::Deactivating),
         _ => None,
     }
 }
@@ -286,12 +285,6 @@ fn parse_actor_status(name: &str) -> Option<ActorStatus> {
     }
 }
 
-// The vectors include "Activating -> Dormant" which the implementations
-// do not support (impl only has Activating -> Active). Skip mismatched pairs.
-fn skip_valid_lifecycle(from: &str, to: &str) -> bool {
-    from == "Activating" && to == "Dormant"
-}
-
 #[test]
 fn conformance_vectors_lifecycle_valid_transitions() {
     let vectors = load_vectors();
@@ -303,18 +296,10 @@ fn conformance_vectors_lifecycle_valid_transitions() {
         let from_name = pair[0].as_str().unwrap();
         let to_name = pair[1].as_str().unwrap();
 
-        if skip_valid_lifecycle(from_name, to_name) {
-            continue;
-        }
-
-        let from = match parse_lifecycle_state(from_name) {
-            Some(s) => s,
-            None => continue, // skip unmapped states
-        };
-        let to = match parse_lifecycle_state(to_name) {
-            Some(s) => s,
-            None => continue,
-        };
+        let from = parse_lifecycle_state(from_name)
+            .unwrap_or_else(|| panic!("Unmapped lifecycle vector state: {from_name}"));
+        let to = parse_lifecycle_state(to_name)
+            .unwrap_or_else(|| panic!("Unmapped lifecycle vector state: {to_name}"));
 
         assert!(
             from.can_transition_to(to),
@@ -334,14 +319,10 @@ fn conformance_vectors_lifecycle_invalid_transitions() {
         let from_name = pair[0].as_str().unwrap();
         let to_name = pair[1].as_str().unwrap();
 
-        let from = match parse_lifecycle_state(from_name) {
-            Some(s) => s,
-            None => continue,
-        };
-        let to = match parse_lifecycle_state(to_name) {
-            Some(s) => s,
-            None => continue,
-        };
+        let from = parse_lifecycle_state(from_name)
+            .unwrap_or_else(|| panic!("Unmapped lifecycle vector state: {from_name}"));
+        let to = parse_lifecycle_state(to_name)
+            .unwrap_or_else(|| panic!("Unmapped lifecycle vector state: {to_name}"));
 
         assert!(
             !from.can_transition_to(to),
@@ -361,14 +342,10 @@ fn conformance_vectors_actor_status_valid_transitions() {
         let from_name = pair[0].as_str().unwrap();
         let to_name = pair[1].as_str().unwrap();
 
-        let from = match parse_actor_status(from_name) {
-            Some(s) => s,
-            None => continue,
-        };
-        let to = match parse_actor_status(to_name) {
-            Some(s) => s,
-            None => continue,
-        };
+        let from = parse_actor_status(from_name)
+            .unwrap_or_else(|| panic!("Unmapped actor status vector state: {from_name}"));
+        let to = parse_actor_status(to_name)
+            .unwrap_or_else(|| panic!("Unmapped actor status vector state: {to_name}"));
 
         assert!(
             from.transition_to(to).is_ok(),
@@ -388,14 +365,10 @@ fn conformance_vectors_actor_status_invalid_transitions() {
         let from_name = pair[0].as_str().unwrap();
         let to_name = pair[1].as_str().unwrap();
 
-        let from = match parse_actor_status(from_name) {
-            Some(s) => s,
-            None => continue,
-        };
-        let to = match parse_actor_status(to_name) {
-            Some(s) => s,
-            None => continue,
-        };
+        let from = parse_actor_status(from_name)
+            .unwrap_or_else(|| panic!("Unmapped actor status vector state: {from_name}"));
+        let to = parse_actor_status(to_name)
+            .unwrap_or_else(|| panic!("Unmapped actor status vector state: {to_name}"));
 
         assert!(
             from.transition_to(to).is_err(),

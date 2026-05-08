@@ -9,6 +9,7 @@ public static class Lifecycle
     public const string Active = "active";
     public const string Processing = "processing";
     public const string Emitting = "emitting";
+    public const string Deactivating = "deactivating";
     public const string Suspending = "suspending";
     public const string Suspended = "suspended";
     public const string Memorial = "memorial";
@@ -16,10 +17,11 @@ public static class Lifecycle
     private static readonly Dictionary<string, HashSet<string>> Transitions = new()
     {
         [Dormant] = new() { Activating },
-        [Activating] = new() { Active },
-        [Active] = new() { Processing, Suspending, Memorial },
+        [Activating] = new() { Active, Dormant },
+        [Active] = new() { Processing, Deactivating, Suspending, Memorial },
         [Processing] = new() { Emitting, Active },
         [Emitting] = new() { Active },
+        [Deactivating] = new() { Dormant },
         [Suspending] = new() { Suspended },
         [Suspended] = new() { Activating, Memorial },
         [Memorial] = new(),

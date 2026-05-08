@@ -10,6 +10,16 @@ import os
 import pytest
 
 from eventgraph.event import canonical_content_json, canonical_form, compute_hash
+from eventgraph.actor import ActorStatus
+from eventgraph.primitive import (
+    LIFECYCLE_ACTIVE,
+    LIFECYCLE_ACTIVATING,
+    LIFECYCLE_DEACTIVATING,
+    LIFECYCLE_DORMANT,
+    LIFECYCLE_EMITTING,
+    LIFECYCLE_PROCESSING,
+    valid_transition,
+)
 from eventgraph.types import (
     Activation,
     Cadence,
@@ -177,3 +187,78 @@ class TestTypeValidationConformance:
         cls = type_map[case["type"]]
         obj = cls(case["value"])
         assert obj.value == case["value"]
+
+
+class TestLifecycleTransitionConformance:
+    """Tests against lifecycle_transitions vectors in canonical-vectors.json."""
+
+    lifecycle_map = {
+        "Dormant": LIFECYCLE_DORMANT,
+        "Activating": LIFECYCLE_ACTIVATING,
+        "Active": LIFECYCLE_ACTIVE,
+        "Processing": LIFECYCLE_PROCESSING,
+        "Emitting": LIFECYCLE_EMITTING,
+        "Deactivating": LIFECYCLE_DEACTIVATING,
+    }
+
+    actor_status_map = {
+        "Active": ActorStatus.ACTIVE,
+        "Suspended": ActorStatus.SUSPENDED,
+        "Memorial": ActorStatus.MEMORIAL,
+    }
+
+    @pytest.mark.parametrize(
+        "from_name,to_name",
+        VECTORS["lifecycle_transitions"]["LifecycleState"]["valid"],
+        ids=[
+            "->".join(pair)
+            for pair in VECTORS["lifecycle_transitions"]["LifecycleState"]["valid"]
+        ],
+    )
+    def test_lifecycle_valid(self, from_name, to_name):
+        assert from_name in self.lifecycle_map, f"unmapped lifecycle vector state: {from_name}"
+        assert to_name in self.lifecycle_map, f"unmapped lifecycle vector state: {to_name}"
+        assert valid_transition(self.lifecycle_map[from_name], self.lifecycle_map[to_name])
+
+    @pytest.mark.parametrize(
+        "from_name,to_name",
+        VECTORS["lifecycle_transitions"]["LifecycleState"]["invalid"],
+        ids=[
+            "->".join(pair)
+            for pair in VECTORS["lifecycle_transitions"]["LifecycleState"]["invalid"]
+        ],
+    )
+    def test_lifecycle_invalid(self, from_name, to_name):
+        assert from_name in self.lifecycle_map, f"unmapped lifecycle vector state: {from_name}"
+        assert to_name in self.lifecycle_map, f"unmapped lifecycle vector state: {to_name}"
+        assert not valid_transition(self.lifecycle_map[from_name], self.lifecycle_map[to_name])
+
+    @pytest.mark.parametrize(
+        "from_name,to_name",
+        VECTORS["lifecycle_transitions"]["ActorStatus"]["valid"],
+        ids=[
+            "->".join(pair)
+            for pair in VECTORS["lifecycle_transitions"]["ActorStatus"]["valid"]
+        ],
+    )
+    def test_actor_status_valid(self, from_name, to_name):
+        assert from_name in self.actor_status_map, f"unmapped actor status vector state: {from_name}"
+        assert to_name in self.actor_status_map, f"unmapped actor status vector state: {to_name}"
+        assert (
+            self.actor_status_map[from_name].transition_to(self.actor_status_map[to_name])
+            == self.actor_status_map[to_name]
+        )
+
+    @pytest.mark.parametrize(
+        "from_name,to_name",
+        VECTORS["lifecycle_transitions"]["ActorStatus"]["invalid"],
+        ids=[
+            "->".join(pair)
+            for pair in VECTORS["lifecycle_transitions"]["ActorStatus"]["invalid"]
+        ],
+    )
+    def test_actor_status_invalid(self, from_name, to_name):
+        assert from_name in self.actor_status_map, f"unmapped actor status vector state: {from_name}"
+        assert to_name in self.actor_status_map, f"unmapped actor status vector state: {to_name}"
+        with pytest.raises(Exception):
+            self.actor_status_map[from_name].transition_to(self.actor_status_map[to_name])

@@ -324,6 +324,7 @@ pub enum LifecycleState {
     Active,
     Processing,
     Emitting,
+    Deactivating,
     Suspending,
     Suspended,
     Memorial,
@@ -335,12 +336,15 @@ impl LifecycleState {
             (self, target),
             (Self::Dormant, Self::Activating)
             | (Self::Activating, Self::Active)
+            | (Self::Activating, Self::Dormant)
             | (Self::Active, Self::Processing)
+            | (Self::Active, Self::Deactivating)
             | (Self::Active, Self::Suspending)
             | (Self::Active, Self::Memorial)
             | (Self::Processing, Self::Emitting)
             | (Self::Processing, Self::Active)
             | (Self::Emitting, Self::Active)
+            | (Self::Deactivating, Self::Dormant)
             | (Self::Suspending, Self::Suspended)
             | (Self::Suspended, Self::Activating)
             | (Self::Suspended, Self::Memorial)
@@ -354,6 +358,7 @@ impl LifecycleState {
             Self::Active => "active",
             Self::Processing => "processing",
             Self::Emitting => "emitting",
+            Self::Deactivating => "deactivating",
             Self::Suspending => "suspending",
             Self::Suspended => "suspended",
             Self::Memorial => "memorial",

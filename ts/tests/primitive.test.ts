@@ -25,6 +25,10 @@ describe("isValidTransition", () => {
     expect(isValidTransition(Lifecycle.Activating, Lifecycle.Active)).toBe(true);
   });
 
+  it("activating -> dormant is valid", () => {
+    expect(isValidTransition(Lifecycle.Activating, Lifecycle.Dormant)).toBe(true);
+  });
+
   it("active -> processing is valid", () => {
     expect(isValidTransition(Lifecycle.Active, Lifecycle.Processing)).toBe(true);
   });
@@ -39,6 +43,14 @@ describe("isValidTransition", () => {
 
   it("processing -> active is valid", () => {
     expect(isValidTransition(Lifecycle.Processing, Lifecycle.Active)).toBe(true);
+  });
+
+  it("active -> deactivating is valid", () => {
+    expect(isValidTransition(Lifecycle.Active, Lifecycle.Deactivating)).toBe(true);
+  });
+
+  it("deactivating -> dormant is valid", () => {
+    expect(isValidTransition(Lifecycle.Deactivating, Lifecycle.Dormant)).toBe(true);
   });
 
   it("active -> suspending is valid", () => {

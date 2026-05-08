@@ -187,28 +187,23 @@ describe("conformance: type_validation (from vectors)", () => {
 
 describe("conformance: lifecycle_transitions (from vectors)", () => {
   // Map PascalCase vector names to lowercase implementation names.
-  // "Deactivating" in the vectors has no clean mapping (impl uses Suspending->Suspended,
-  // not Deactivating->Dormant), so we omit it and skip those transitions.
   const lifecycleMap: Record<string, string> = {
     Dormant: Lifecycle.Dormant,
     Activating: Lifecycle.Activating,
     Active: Lifecycle.Active,
     Processing: Lifecycle.Processing,
     Emitting: Lifecycle.Emitting,
+    Deactivating: Lifecycle.Deactivating,
   };
-
-  // The vectors include "Activating -> Dormant" which the implementations
-  // do not support (impl only has Activating -> Active). Skip mismatched pairs.
-  const skipValid = new Set(["Activating->Dormant"]);
 
   describe("LifecycleState valid transitions", () => {
     for (const [from, to] of VECTORS.lifecycle_transitions.LifecycleState.valid) {
       const fromImpl = lifecycleMap[from];
       const toImpl = lifecycleMap[to];
-      if (!fromImpl || !toImpl) continue; // skip unmapped states
-      if (skipValid.has(`${from}->${to}`)) continue;
 
       it(`${from} -> ${to} is valid`, () => {
+        expect(fromImpl, `unmapped lifecycle vector state: ${from}`).toBeDefined();
+        expect(toImpl, `unmapped lifecycle vector state: ${to}`).toBeDefined();
         expect(isValidTransition(fromImpl, toImpl)).toBe(true);
       });
     }
@@ -218,9 +213,10 @@ describe("conformance: lifecycle_transitions (from vectors)", () => {
     for (const [from, to] of VECTORS.lifecycle_transitions.LifecycleState.invalid) {
       const fromImpl = lifecycleMap[from];
       const toImpl = lifecycleMap[to];
-      if (!fromImpl || !toImpl) continue;
 
       it(`${from} -> ${to} is invalid`, () => {
+        expect(fromImpl, `unmapped lifecycle vector state: ${from}`).toBeDefined();
+        expect(toImpl, `unmapped lifecycle vector state: ${to}`).toBeDefined();
         expect(isValidTransition(fromImpl, toImpl)).toBe(false);
       });
     }
@@ -237,9 +233,10 @@ describe("conformance: lifecycle_transitions (from vectors)", () => {
     for (const [from, to] of VECTORS.lifecycle_transitions.ActorStatus.valid) {
       const fromStatus = actorStatusMap[from];
       const toStatus = actorStatusMap[to];
-      if (fromStatus === undefined || toStatus === undefined) continue;
 
       it(`${from} -> ${to} succeeds`, () => {
+        expect(fromStatus, `unmapped actor status vector state: ${from}`).toBeDefined();
+        expect(toStatus, `unmapped actor status vector state: ${to}`).toBeDefined();
         expect(transitionTo(fromStatus, toStatus)).toBe(toStatus);
       });
     }
@@ -249,9 +246,10 @@ describe("conformance: lifecycle_transitions (from vectors)", () => {
     for (const [from, to] of VECTORS.lifecycle_transitions.ActorStatus.invalid) {
       const fromStatus = actorStatusMap[from];
       const toStatus = actorStatusMap[to];
-      if (fromStatus === undefined || toStatus === undefined) continue;
 
       it(`${from} -> ${to} throws`, () => {
+        expect(fromStatus, `unmapped actor status vector state: ${from}`).toBeDefined();
+        expect(toStatus, `unmapped actor status vector state: ${to}`).toBeDefined();
         expect(() => transitionTo(fromStatus, toStatus)).toThrow();
       });
     }

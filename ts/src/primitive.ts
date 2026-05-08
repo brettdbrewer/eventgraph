@@ -13,6 +13,7 @@ export const Lifecycle = {
   Active: "active",
   Processing: "processing",
   Emitting: "emitting",
+  Deactivating: "deactivating",
   Suspending: "suspending",
   Suspended: "suspended",
   Memorial: "memorial",
@@ -20,10 +21,11 @@ export const Lifecycle = {
 
 const TRANSITIONS: Record<string, Set<string>> = {
   [Lifecycle.Dormant]: new Set([Lifecycle.Activating]),
-  [Lifecycle.Activating]: new Set([Lifecycle.Active]),
-  [Lifecycle.Active]: new Set([Lifecycle.Processing, Lifecycle.Suspending, Lifecycle.Memorial]),
+  [Lifecycle.Activating]: new Set([Lifecycle.Active, Lifecycle.Dormant]),
+  [Lifecycle.Active]: new Set([Lifecycle.Processing, Lifecycle.Deactivating, Lifecycle.Suspending, Lifecycle.Memorial]),
   [Lifecycle.Processing]: new Set([Lifecycle.Emitting, Lifecycle.Active]),
   [Lifecycle.Emitting]: new Set([Lifecycle.Active]),
+  [Lifecycle.Deactivating]: new Set([Lifecycle.Dormant]),
   [Lifecycle.Suspending]: new Set([Lifecycle.Suspended]),
   [Lifecycle.Suspended]: new Set([Lifecycle.Activating, Lifecycle.Memorial]),
   [Lifecycle.Memorial]: new Set(),

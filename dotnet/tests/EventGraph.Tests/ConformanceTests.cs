@@ -268,8 +268,6 @@ public class VectorConformanceTests
 
     // ── Lifecycle transitions ───────────────────────────────────────────
 
-    // "Deactivating" in the vectors has no clean mapping (impl uses Suspending->Suspended,
-    // not Deactivating->Dormant), so we omit it and skip those transitions.
     private static readonly Dictionary<string, string> LifecycleMap = new()
     {
         ["Dormant"] = Lifecycle.Dormant,
@@ -277,6 +275,7 @@ public class VectorConformanceTests
         ["Active"] = Lifecycle.Active,
         ["Processing"] = Lifecycle.Processing,
         ["Emitting"] = Lifecycle.Emitting,
+        ["Deactivating"] = Lifecycle.Deactivating,
     };
 
     private static readonly Dictionary<string, ActorStatus> ActorStatusMap = new()
@@ -285,10 +284,6 @@ public class VectorConformanceTests
         ["Suspended"] = ActorStatus.Suspended,
         ["Memorial"] = ActorStatus.Memorial,
     };
-
-    // The vectors include "Activating -> Dormant" which the implementations
-    // do not support (impl only has Activating -> Active). Skip mismatched pairs.
-    private static readonly HashSet<string> SkipValidLifecycle = ["Activating->Dormant"];
 
     [Fact]
     public void LifecycleState_ValidTransitions()
@@ -303,12 +298,10 @@ public class VectorConformanceTests
             var from = pair[0].GetString()!;
             var to = pair[1].GetString()!;
 
-            if (!LifecycleMap.TryGetValue(from, out var fromImpl) ||
-                !LifecycleMap.TryGetValue(to, out var toImpl))
-                continue; // skip unmapped states
-
-            if (SkipValidLifecycle.Contains($"{from}->{to}"))
-                continue;
+            Assert.True(LifecycleMap.TryGetValue(from, out var fromImpl),
+                $"Unmapped lifecycle vector state: {from}");
+            Assert.True(LifecycleMap.TryGetValue(to, out var toImpl),
+                $"Unmapped lifecycle vector state: {to}");
 
             Assert.True(Lifecycle.IsValidTransition(fromImpl, toImpl),
                 $"Expected {from} -> {to} to be valid");
@@ -328,9 +321,10 @@ public class VectorConformanceTests
             var from = pair[0].GetString()!;
             var to = pair[1].GetString()!;
 
-            if (!LifecycleMap.TryGetValue(from, out var fromImpl) ||
-                !LifecycleMap.TryGetValue(to, out var toImpl))
-                continue;
+            Assert.True(LifecycleMap.TryGetValue(from, out var fromImpl),
+                $"Unmapped lifecycle vector state: {from}");
+            Assert.True(LifecycleMap.TryGetValue(to, out var toImpl),
+                $"Unmapped lifecycle vector state: {to}");
 
             Assert.False(Lifecycle.IsValidTransition(fromImpl, toImpl),
                 $"Expected {from} -> {to} to be invalid");
@@ -350,9 +344,10 @@ public class VectorConformanceTests
             var from = pair[0].GetString()!;
             var to = pair[1].GetString()!;
 
-            if (!ActorStatusMap.TryGetValue(from, out var fromStatus) ||
-                !ActorStatusMap.TryGetValue(to, out var toStatus))
-                continue;
+            Assert.True(ActorStatusMap.TryGetValue(from, out var fromStatus),
+                $"Unmapped actor status vector state: {from}");
+            Assert.True(ActorStatusMap.TryGetValue(to, out var toStatus),
+                $"Unmapped actor status vector state: {to}");
 
             var result = fromStatus.TransitionTo(toStatus);
             Assert.Equal(toStatus, result);
@@ -372,9 +367,10 @@ public class VectorConformanceTests
             var from = pair[0].GetString()!;
             var to = pair[1].GetString()!;
 
-            if (!ActorStatusMap.TryGetValue(from, out var fromStatus) ||
-                !ActorStatusMap.TryGetValue(to, out var toStatus))
-                continue;
+            Assert.True(ActorStatusMap.TryGetValue(from, out var fromStatus),
+                $"Unmapped actor status vector state: {from}");
+            Assert.True(ActorStatusMap.TryGetValue(to, out var toStatus),
+                $"Unmapped actor status vector state: {to}");
 
             Assert.Throws<InvalidTransitionException>(() => fromStatus.TransitionTo(toStatus));
         }
