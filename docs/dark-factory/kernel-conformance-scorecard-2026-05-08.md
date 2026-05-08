@@ -13,7 +13,7 @@ This artifact is a repo-local working scorecard. It does not unblock external ru
 | 1 | Canonical serialization | passing | Cross-language vector tests are present and passing in default local checks. |
 | 2 | Hash-chain integrity | passing | Store conformance suites and chain verification tests pass for default stores. |
 | 3 | Causal queries | passing | Store and graph query tests cover ancestors, descendants, source, type, conversation, recent, and pagination where implemented. |
-| 4 | Actor identity and signatures | partial | Actor registry, public-key lookup, signature-shape, and EGIP signature verification tests exist. Production identity guardrail evidence is cross-repo in `agent`, not kernel-local. |
+| 4 | Actor identity and signatures | passing | EventGraph actor/signature coverage is present, and Agent production identity guardrail evidence is linked from a repo-local note. |
 | 5 | Lifecycle/status transitions | passing | Cross-language lifecycle vectors now run by default. |
 | 6 | Authority records | passing | `authority.requested` content and protected action vocabulary are covered across bindings. |
 | 7 | Protected side-effect denial | passing | Record-only protected side-effect request helpers cover every DF-SOP-0001 protected action and reject incompatible aliases. |
@@ -113,7 +113,7 @@ Disposition: no claimed causal traversal blocker found.
 
 ## 4. Actor Identity and Signatures
 
-Status: partial.
+Status: passing.
 
 Required evidence:
 
@@ -124,6 +124,9 @@ Required evidence:
 - `python/tests/test_actor.py`
 - `rust/tests/actor_test.rs`
 - `dotnet/tests/EventGraph.Tests/EgipTests.cs`
+- `docs/dark-factory/agent-production-identity-guardrail-evidence-2026-05-08.md`
+- Agent PR `transpara-ai/agent#17`, merge commit `a78c7f8c4200e8a0b7a065363d176d0a2c2a77e5`
+- Agent PR `transpara-ai/agent#19`, merge commit `07d6c6961ec60e9600ee19548c05708231760b63`
 
 Covered behavior:
 
@@ -133,13 +136,20 @@ Covered behavior:
 - signature byte-shape validation
 - signature primitive accounting
 - EGIP signing and verification round trips
+- production Agent identity defaults to generated key material when unset
+- Agent production mode rejects `IdentityModeDeterministic`
+- Agent production mode rejects supplied signing keys derived from `sha256("agent:" + Name)`
+- Agent test/development modes allow deterministic identity only when explicitly configured
 
-Gap:
+Agent test evidence:
 
-- `DF-EVAL-0001` requires production identity guardrail evidence: production public-name-derived deterministic identity must be blocked while dev/test deterministic fixtures remain explicit.
-- That guardrail was implemented and reviewed in `transpara-ai/agent`; EventGraph does not yet carry a repo-local scorecard pointer/test artifact proving that dependency.
+- `TestProductionRejectsDeterministicIdentity`
+- `TestProductionRejectsSuppliedPublicNameDerivedSigningKey`
+- `TestProductionGeneratedIdentityDoesNotUsePublicNameSeed`
+- `TestDeterministicIdentityAllowedOnlyWhenExplicitlyMarkedTest`
+- `TestDeterministicIdentityAllowedOnlyWhenExplicitlyMarkedDevelopment`
 
-Disposition: partial. Not a kernel implementation blocker by itself, but Phase 2 evidence must cite the Agent guardrail PR or add a kernel-local cross-repo evidence note before final conformance closure.
+Disposition: no actor identity/signature blocker found. EventGraph keeps kernel actor/signature evidence local; Agent production signing-key policy remains cross-repo evidence and is linked here rather than duplicated.
 
 ## 5. Lifecycle/Status Transitions
 
@@ -303,8 +313,6 @@ Disposition: no unclassified environment-sensitive skip blocker found.
 
 ## Next Required Work
 
-Proceed in scorecard order:
+No remaining EventGraph kernel scorecard implementation items are open in this artifact.
 
-1. Add a final cross-repo evidence note for Agent production identity guardrails before conformance closure.
-
-Do not begin external runtime integration until these items pass or are explicitly accepted by ADR/risk process.
+Do not begin external runtime integration until Phase 2 closure accepts this evidence and the Dark Factory docs explicitly unblock it.
