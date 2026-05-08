@@ -196,12 +196,12 @@ func TestDelegationChainWithPolicy(t *testing.T) {
 	chain := newTestDelegationChain(t, model, s)
 
 	chain.AddPolicy(authority.AuthorityPolicy{
-		Action: "deploy.*",
+		Action: "production.*",
 		Level:  event.AuthorityLevelRequired,
 	})
 
 	a := testActor(t, "Alice", 1)
-	result, err := chain.Evaluate(context.Background(), a, "deploy.prod")
+	result, err := chain.Evaluate(context.Background(), a, "production.deploy")
 	if err != nil {
 		t.Fatalf("Evaluate: %v", err)
 	}

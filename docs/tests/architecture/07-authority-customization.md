@@ -28,7 +28,7 @@ policies: [
 
 ### TC-7.2: Policy Scoping
 
-**Input:** Register policy A for scope "deploy.*", policy B for scope "data.*".
+**Input:** Register policy A for scope "production.*", policy B for scope "data.*".
 **Assertions:**
 - Deploy actions use policy A
 - Data actions use policy B
@@ -36,7 +36,7 @@ policies: [
 
 ### TC-7.3: Multi-Approver
 
-**Input:** Register policy requiring 2 approvers for "deploy.production".
+**Input:** Register policy requiring 2 approvers for "production.deploy".
 **Assertions:**
 - First approval doesn't resolve the request
 - Second approval resolves it

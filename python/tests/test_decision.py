@@ -328,7 +328,7 @@ def test_pattern_match_wildcard():
         condition=Condition(field="action", operator=Operator.MATCHES),
         branches=[
             Branch(
-                match=MatchValue(string=Option.some("deploy.*")),
+                match=MatchValue(string=Option.some("production.*")),
                 child=permit_leaf,
             ),
         ],
@@ -336,7 +336,7 @@ def test_pattern_match_wildcard():
     )
     tree = DecisionTree(root=node)
 
-    result = evaluate(tree, _make_input(action="deploy.production"))
+    result = evaluate(tree, _make_input(action="production.deploy"))
     assert result.outcome == DecisionOutcome.PERMIT
 
     result = evaluate(tree, _make_input(action="delete.staging"))
