@@ -1,0 +1,188 @@
+{
+  "_comment": "Deterministic projection rebuild fixture for Dark Factory Phase 2 scorecard item 9. Tests must rebuild outputs from events only.",
+  "version": 1,
+  "projections": {
+    "work_readiness": {
+      "df-work-001": {
+        "ready": true,
+        "missing_inputs": [],
+        "ready_event": "019462a0-0000-7000-8000-000000000004"
+      }
+    },
+    "work_phase_gates": {
+      "df-work-001": {
+        "current_phase": "review",
+        "last_gate_event": "019462a0-0000-7000-8000-000000000008",
+        "authority_request": "019462a0-0000-7000-8000-000000000006",
+        "authority_resolution": "019462a0-0000-7000-8000-000000000007"
+      }
+    },
+    "hive_authority_audit": [
+      {
+        "request_event": "019462a0-0000-7000-8000-000000000006",
+        "resolution_event": "019462a0-0000-7000-8000-000000000007",
+        "decision_event": "019462a0-0000-7000-8000-000000000009",
+        "action": "repo.merge.main",
+        "actor": "actor_00000000000000000000000000000001",
+        "approved": true,
+        "decision_outcome": "Permit"
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "019462a0-0000-7000-8000-000000000001",
+      "type": "system.bootstrapped",
+      "source": "actor_00000000000000000000000000000001",
+      "conversation_id": "conv_00000000000000000000000000000021",
+      "timestamp_nanos": 1700000100000000000,
+      "prev_hash": "",
+      "causes": [],
+      "content": {
+        "ActorID": "actor_00000000000000000000000000000001",
+        "ChainGenesis": "0000000000000000000000000000000000000000000000000000000000000000",
+        "Timestamp": "2023-11-14T22:15:00Z"
+      },
+      "canonical_content_json": "{\"ActorID\":\"actor_00000000000000000000000000000001\",\"ChainGenesis\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"Timestamp\":\"2023-11-14T22:15:00Z\"}",
+      "hash": "02036fe1aac00f7e2ed2f0382998b17b6c4f2aab47928dce8e46ed1e9dcb720d"
+    },
+    {
+      "id": "019462a0-0000-7000-8000-000000000002",
+      "type": "work.item.created",
+      "source": "actor_00000000000000000000000000000001",
+      "conversation_id": "conv_00000000000000000000000000000021",
+      "timestamp_nanos": 1700000101000000000,
+      "prev_hash": "02036fe1aac00f7e2ed2f0382998b17b6c4f2aab47928dce8e46ed1e9dcb720d",
+      "causes": ["019462a0-0000-7000-8000-000000000001"],
+      "content": {
+        "WorkID": "df-work-001",
+        "Title": "Implement kernel projection fixture",
+        "Owner": "actor_00000000000000000000000000000001",
+        "RequiredInputs": ["spec", "design"],
+        "ReadyInputs": ["spec"],
+        "Status": "blocked"
+      },
+      "canonical_content_json": "{\"Owner\":\"actor_00000000000000000000000000000001\",\"ReadyInputs\":[\"spec\"],\"RequiredInputs\":[\"spec\",\"design\"],\"Status\":\"blocked\",\"Title\":\"Implement kernel projection fixture\",\"WorkID\":\"df-work-001\"}",
+      "hash": "2f78e1af7cbfb340ecc53daf57e12a51b1dae07553534a5d4e361f7a661e826a"
+    },
+    {
+      "id": "019462a0-0000-7000-8000-000000000003",
+      "type": "work.input.recorded",
+      "source": "actor_00000000000000000000000000000001",
+      "conversation_id": "conv_00000000000000000000000000000021",
+      "timestamp_nanos": 1700000102000000000,
+      "prev_hash": "2f78e1af7cbfb340ecc53daf57e12a51b1dae07553534a5d4e361f7a661e826a",
+      "causes": ["019462a0-0000-7000-8000-000000000002"],
+      "content": {
+        "WorkID": "df-work-001",
+        "Input": "design"
+      },
+      "canonical_content_json": "{\"Input\":\"design\",\"WorkID\":\"df-work-001\"}",
+      "hash": "d9ec2ae54225549032f6ce87553c6e7f54fc8cf3159a5c870ca10cee977c364c"
+    },
+    {
+      "id": "019462a0-0000-7000-8000-000000000004",
+      "type": "work.item.ready",
+      "source": "actor_00000000000000000000000000000001",
+      "conversation_id": "conv_00000000000000000000000000000021",
+      "timestamp_nanos": 1700000103000000000,
+      "prev_hash": "d9ec2ae54225549032f6ce87553c6e7f54fc8cf3159a5c870ca10cee977c364c",
+      "causes": ["019462a0-0000-7000-8000-000000000003"],
+      "content": {
+        "WorkID": "df-work-001",
+        "Ready": true
+      },
+      "canonical_content_json": "{\"Ready\":true,\"WorkID\":\"df-work-001\"}",
+      "hash": "856d0c7508ed6194fbdf389c83d58e238c683355323636fa917787ed89c4e472"
+    },
+    {
+      "id": "019462a0-0000-7000-8000-000000000005",
+      "type": "work.phase.gate.requested",
+      "source": "actor_00000000000000000000000000000001",
+      "conversation_id": "conv_00000000000000000000000000000021",
+      "timestamp_nanos": 1700000104000000000,
+      "prev_hash": "856d0c7508ed6194fbdf389c83d58e238c683355323636fa917787ed89c4e472",
+      "causes": ["019462a0-0000-7000-8000-000000000004"],
+      "content": {
+        "WorkID": "df-work-001",
+        "From": "implementation",
+        "To": "review",
+        "RequiredAction": "repo.merge.main"
+      },
+      "canonical_content_json": "{\"From\":\"implementation\",\"RequiredAction\":\"repo.merge.main\",\"To\":\"review\",\"WorkID\":\"df-work-001\"}",
+      "hash": "aa975b7a9a868d5692f38262ccc7e4d4cb6d9481c47f30befba18d064f18757a"
+    },
+    {
+      "id": "019462a0-0000-7000-8000-000000000006",
+      "type": "authority.requested",
+      "source": "actor_00000000000000000000000000000001",
+      "conversation_id": "conv_00000000000000000000000000000021",
+      "timestamp_nanos": 1700000105000000000,
+      "prev_hash": "aa975b7a9a868d5692f38262ccc7e4d4cb6d9481c47f30befba18d064f18757a",
+      "causes": ["019462a0-0000-7000-8000-000000000005"],
+      "content": {
+        "Action": "repo.merge.main",
+        "Actor": "actor_00000000000000000000000000000001",
+        "Level": "Required",
+        "Justification": "phase gate requires human approval",
+        "Causes": ["019462a0-0000-7000-8000-000000000005"]
+      },
+      "canonical_content_json": "{\"Action\":\"repo.merge.main\",\"Actor\":\"actor_00000000000000000000000000000001\",\"Causes\":[\"019462a0-0000-7000-8000-000000000005\"],\"Justification\":\"phase gate requires human approval\",\"Level\":\"Required\"}",
+      "hash": "9c2e4664b84e31e82133b4de9cd53c5757ea907ce820b16a252836cde55e58fd"
+    },
+    {
+      "id": "019462a0-0000-7000-8000-000000000007",
+      "type": "authority.resolved",
+      "source": "actor_00000000000000000000000000000002",
+      "conversation_id": "conv_00000000000000000000000000000021",
+      "timestamp_nanos": 1700000106000000000,
+      "prev_hash": "9c2e4664b84e31e82133b4de9cd53c5757ea907ce820b16a252836cde55e58fd",
+      "causes": ["019462a0-0000-7000-8000-000000000006"],
+      "content": {
+        "Request": "019462a0-0000-7000-8000-000000000006",
+        "Approved": true,
+        "Resolver": "actor_00000000000000000000000000000002",
+        "Reason": "phase gate evidence complete"
+      },
+      "canonical_content_json": "{\"Approved\":true,\"Reason\":\"phase gate evidence complete\",\"Request\":\"019462a0-0000-7000-8000-000000000006\",\"Resolver\":\"actor_00000000000000000000000000000002\"}",
+      "hash": "654d599f124248e290cb2776669ceac32b89d28345efe548ed7162e2f9fe2d1d"
+    },
+    {
+      "id": "019462a0-0000-7000-8000-000000000008",
+      "type": "work.phase.gate.passed",
+      "source": "actor_00000000000000000000000000000001",
+      "conversation_id": "conv_00000000000000000000000000000021",
+      "timestamp_nanos": 1700000107000000000,
+      "prev_hash": "654d599f124248e290cb2776669ceac32b89d28345efe548ed7162e2f9fe2d1d",
+      "causes": ["019462a0-0000-7000-8000-000000000007"],
+      "content": {
+        "WorkID": "df-work-001",
+        "From": "implementation",
+        "To": "review",
+        "AuthorityRequest": "019462a0-0000-7000-8000-000000000006",
+        "AuthorityResolution": "019462a0-0000-7000-8000-000000000007"
+      },
+      "canonical_content_json": "{\"AuthorityRequest\":\"019462a0-0000-7000-8000-000000000006\",\"AuthorityResolution\":\"019462a0-0000-7000-8000-000000000007\",\"From\":\"implementation\",\"To\":\"review\",\"WorkID\":\"df-work-001\"}",
+      "hash": "512282dde83dd5fef96846c4639ded6d942c1f20ba415d1532bd25fe44d71c89"
+    },
+    {
+      "id": "019462a0-0000-7000-8000-000000000009",
+      "type": "decision.recorded",
+      "source": "actor_00000000000000000000000000000002",
+      "conversation_id": "conv_00000000000000000000000000000021",
+      "timestamp_nanos": 1700000108000000000,
+      "prev_hash": "512282dde83dd5fef96846c4639ded6d942c1f20ba415d1532bd25fe44d71c89",
+      "causes": ["019462a0-0000-7000-8000-000000000007"],
+      "content": {
+        "Actor": "actor_00000000000000000000000000000002",
+        "Action": "repo.merge.main",
+        "Outcome": "Permit",
+        "Confidence": 0.95,
+        "Rationale": "authority resolution approved phase gate",
+        "Evidence": ["019462a0-0000-7000-8000-000000000007"]
+      },
+      "canonical_content_json": "{\"Action\":\"repo.merge.main\",\"Actor\":\"actor_00000000000000000000000000000002\",\"Confidence\":0.95,\"Evidence\":[\"019462a0-0000-7000-8000-000000000007\"],\"Outcome\":\"Permit\",\"Rationale\":\"authority resolution approved phase gate\"}",
+      "hash": "8e1258ae2ad292fff501a51c9553f1369fa5e5b40099454db66b0d3d46a60f1c"
+    }
+  ]
+}

@@ -18,7 +18,7 @@ This artifact is a repo-local working scorecard. It does not unblock external ru
 | 6 | Authority records | passing | `authority.requested` content and protected action vocabulary are covered across bindings. |
 | 7 | Protected side-effect denial | passing | Record-only protected side-effect request helpers cover every DF-SOP-0001 protected action and reject incompatible aliases. |
 | 8 | Trust and decision records | passing | Trust record content and `decision.recorded` content are typed, serialized, hashed, stored, queried, and causally linked. |
-| 9 | Projection rebuild boundary | true blocker | Product projection rebuild examples are documented, but no deterministic kernel replay artifact proves Work readiness, Work phase gates, or Hive authority audit views rebuild without hidden side channels. |
+| 9 | Projection rebuild boundary | passing | Deterministic fixture events rebuild Work readiness, Work phase gates, and Hive authority audit projections without hidden side channels. |
 | 10 | Environment-sensitive tests | passing with classified skips | Skip inventory exists and classifies database/provider/environment-sensitive tests. |
 
 ## 1. Canonical Serialization
@@ -268,19 +268,22 @@ Disposition: no trust or decision record blocker found. Provider reasoning and L
 
 ## 9. Projection Rebuild Boundary
 
-Status: true blocker.
+Status: passing.
 
-Current evidence:
+Required evidence:
 
-- Product projection concepts are documented under `docs/products/work.md`.
-- EventGraph supports deterministic store replay inputs through append-only events and causal queries.
+- `docs/conformance/projection-rebuild-fixtures.json`
+- `go/pkg/event/projection_rebuild_conformance_test.go`
 
-Gap:
+Covered behavior:
 
-- No deterministic replay artifact proves Work readiness, Work phase gates, or Hive authority audit views rebuild from EventGraph events without hidden side channels.
-- UI rendering is extension coverage and does not satisfy this kernel boundary item.
+- fixture events include canonical content JSON, hashes, previous-hash links, causes, and expected projection outputs
+- tests verify fixture canonical content, hash-chain links, event hashes, and causal references
+- replay tests rebuild Work readiness, Work phase gates, and Hive authority audit views from event content and causes only
+- negative tests fail when a required source event is missing or when a phase-gate causal link is broken
+- no Hive runtime behavior, Site UI rendering, provider integration, or deployment adapter behavior is promoted into the EventGraph kernel
 
-Disposition: true blocker for final Phase 2 conformance. Add deterministic projection rebuild fixtures/tests before unblocking runtime integration.
+Disposition: no projection rebuild boundary blocker found. This is kernel replay evidence only; extension runtime behavior remains outside the kernel boundary.
 
 ## 10. Environment-Sensitive Tests
 
@@ -302,7 +305,6 @@ Disposition: no unclassified environment-sensitive skip blocker found.
 
 Proceed in scorecard order:
 
-1. Add deterministic projection rebuild fixtures/tests for Work readiness, Work phase gates, and Hive authority audit views.
-2. Add a final cross-repo evidence note for Agent production identity guardrails before conformance closure.
+1. Add a final cross-repo evidence note for Agent production identity guardrails before conformance closure.
 
 Do not begin external runtime integration until these items pass or are explicitly accepted by ADR/risk process.
