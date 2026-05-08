@@ -134,12 +134,10 @@ staticcheck ./...
 
 **Module path:** `github.com/transpara-ai/eventgraph/go`
 
-**Known pre-existing test failures** (do not fix unless explicitly assigned):
-- `TestAgentEventTypeCount` in `pkg/agent` — off-by-one from a recent PR, not yet fixed
-- `TestIntegrationAnthropic*` in `pkg/intelligence` — require a live Anthropic API key
-- `TestNewClaudeCli*` in `pkg/intelligence` — require the `claude` binary on `PATH` (passes locally for developers who have Claude Code installed; fails on bare CI runners). The proper fix is `t.Skip()` when `exec.LookPath("claude")` errors.
-
-CI skips these via `-skip 'TestAgentEventTypeCount|TestIntegrationAnthropic|TestNewClaudeCli'` in `.github/workflows/ci.yml`.
+**Skipped/environment-sensitive tests:**
+- Default Go CI runs `go test -race -v ./...`; it does not use a command-level skip regex.
+- External database and provider tests self-skip when their required service, API key, or CLI opt-in flag is absent.
+- Dark Factory skip dispositions are tracked in `docs/dark-factory/skipped-kernel-test-inventory-2026-05-08.md`.
 
 ## Working in this Codebase
 

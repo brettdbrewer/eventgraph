@@ -3,6 +3,7 @@ package intelligence_test
 import (
 	"context"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -187,6 +188,8 @@ func TestConfigWithAllOptions(t *testing.T) {
 // ════════════════════════════════════════════════════════════════════════
 
 func TestNewClaudeCliDefaultModel(t *testing.T) {
+	skipWithoutClaudeBinary(t)
+
 	p, err := intelligence.New(intelligence.NewClaudeCliConfig(""))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -200,6 +203,8 @@ func TestNewClaudeCliDefaultModel(t *testing.T) {
 }
 
 func TestNewClaudeCliCustomModel(t *testing.T) {
+	skipWithoutClaudeBinary(t)
+
 	p, err := intelligence.New(intelligence.NewClaudeCliConfig("opus"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -216,6 +221,13 @@ func TestNewClaudeCliConfig(t *testing.T) {
 	}
 	if cfg.Model != "haiku" {
 		t.Errorf("Model = %q, want haiku", cfg.Model)
+	}
+}
+
+func skipWithoutClaudeBinary(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("claude"); err != nil {
+		t.Skipf("claude CLI not found in PATH: %v", err)
 	}
 }
 
