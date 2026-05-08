@@ -14,6 +14,8 @@ The previous Go CI command-level skip list was obsolete. `TestAgentEventTypeCoun
 
 The remaining kernel-relevant skips are environment-only skips for external database-backed store/actor/state implementations. In-memory Go store conformance and cross-language canonical conformance continue to run by default.
 
+Phase 2 conformance work should also track cross-language vector omissions that are not implemented as test skips. In particular, TypeScript lifecycle conformance currently omits unmapped lifecycle states and skips the vector pair `Activating->Dormant` because its implementation state machine does not map that transition cleanly. This is not a Phase 1 skipped-test blocker, but it is a Phase 2 scorecard item until resolved, re-vectorized, or explicitly accepted by ADR.
+
 ## Inventory
 
 | Test or family | Location | Kernel relevance | Classification | Disposition |
@@ -27,6 +29,7 @@ The remaining kernel-relevant skips are environment-only skips for external data
 | `pgstate` package tests | `go/pkg/statestore/pgstate/pgstate_test.go` | Projection/state persistence | environment-only skip | Self-skip without `EVENTGRAPH_POSTGRES_URL`. Default CI verifies package compilation and skip visibility, not live database behavior. |
 | Python Postgres store tests | `python/tests/test_postgres_store.py` | EventStore protocol behavior | environment-only skip | Skip when `psycopg2` or `POSTGRES_URL` is absent. Python canonical conformance still runs by default. |
 | TypeScript SQLite store suite | `ts/tests/sqlite-store.test.ts` | EventStore persistence | environment-only skip | Skips if `better-sqlite3` is unavailable. It is listed in `ts/package.json` dev dependencies, so normal npm CI should run it. |
+| TypeScript lifecycle vector omissions | `ts/tests/conformance.test.ts` | Lifecycle conformance | accepted deferred risk | The test omits unmapped states and skips `Activating->Dormant`. This is not a command-level or environment skip, but Phase 2 scorecard work must resolve or explicitly accept the mismatch. |
 | Go live LLM intelligence and agent-runtime tests | `go/pkg/intelligence/*_test.go` | Outside kernel; intelligence is governed by the graph but not part of the kernel implementation | accepted deferred risk | Self-skip without `EVENTGRAPH_TEST_CLAUDE_CLI`, provider API keys, or `EVENTGRAPH_TEST_OLLAMA`. These should remain opt-in unless provider conformance becomes a separate Phase 2+ requirement. |
 | Python/TypeScript/.NET/Rust live provider tests | `python/tests/test_intelligence.py`, `ts/tests/intelligence.test.ts`, `dotnet/tests/EventGraph.Tests/IntelligenceTests.cs`, `rust/src/intelligence.rs` | Outside kernel | accepted deferred risk | Environment/key-gated or hard-skipped provider integrations. They do not block kernel conformance. |
 | Go Codex CLI smoke tests | `go/pkg/intelligence/codex_cli_test.go` | Outside kernel | accepted deferred risk | Self-skip if `codex` is not on `PATH`; not kernel-conformance relevant. |
@@ -56,6 +59,6 @@ Observed on 2026-05-08:
 | true blocker | None found. |
 | obsolete test | Previous Go CI skip entries for `TestAgentEventTypeCount` and `TestNewClaudeCli*`. |
 | environment-only skip | External database-backed EventStore/ActorRegistry/StateStore tests and selected provider tests that self-skip without configured dependencies. |
-| accepted deferred risk | Live LLM/provider/agent-runtime integrations outside the kernel boundary. |
+| accepted deferred risk | Live LLM/provider/agent-runtime integrations outside the kernel boundary; TypeScript lifecycle vector omissions pending Phase 2 scorecard disposition. |
 
 Next recommended improvement: add optional service-backed CI jobs for Postgres and MySQL store conformance so external EventStore implementations are periodically exercised without making default unit CI depend on local database secrets.
