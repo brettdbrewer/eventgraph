@@ -171,6 +171,42 @@ public class AuthorityTests
         Assert.Equal(new[] { cause }, content.Causes);
     }
 
+    [Fact]
+    public void ProtectedSideEffectRequestsAreRecordOnlyAndRequired()
+    {
+        var cause = new EventId("019462a0-0000-7000-8000-000000000001");
+
+        foreach (var action in ProtectedAction.All)
+        {
+            var content = AuthorityRequest.ProtectedSideEffect(
+                action,
+                TestActorId(),
+                "DF-SOP-0001 requires authority before executing protected side effects",
+                new[] { cause });
+
+            Assert.Equal(action, content.Action);
+            Assert.Equal(TestActorId(), content.Actor);
+            Assert.Equal(AuthorityLevel.Required, content.Level);
+            Assert.Equal("DF-SOP-0001 requires authority before executing protected side effects", content.Justification);
+            Assert.Equal(new[] { cause }, content.Causes);
+        }
+    }
+
+    [Fact]
+    public void ProtectedSideEffectRequestsRejectAliases()
+    {
+        var cause = new EventId("019462a0-0000-7000-8000-000000000001");
+
+        var ex = Assert.Throws<ArgumentException>(() =>
+            AuthorityRequest.ProtectedSideEffect(
+                "deploy.production",
+                TestActorId(),
+                "alias must not execute",
+                new[] { cause }));
+
+        Assert.Contains("unknown protected action deploy.production", ex.Message);
+    }
+
     // ── 10. Grant and Revoke are no-op ──────────────────────────────────
 
     [Fact]

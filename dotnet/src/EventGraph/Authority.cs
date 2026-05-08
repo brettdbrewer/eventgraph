@@ -41,6 +41,32 @@ public sealed record AuthorityRequestContent(
     string Justification,
     IReadOnlyList<EventId> Causes);
 
+public static class AuthorityRequest
+{
+    /// <summary>
+    /// Create record-only authority.requested content for a DF-SOP-0001 protected action.
+    /// This does not execute or authorize the side effect.
+    /// </summary>
+    public static AuthorityRequestContent ProtectedSideEffect(
+        string action,
+        ActorId actor,
+        string justification,
+        IReadOnlyList<EventId> causes)
+    {
+        if (!ProtectedAction.IsProtected(action))
+        {
+            throw new ArgumentException($"unknown protected action {action}", nameof(action));
+        }
+
+        return new AuthorityRequestContent(
+            action,
+            actor,
+            AuthorityLevel.Required,
+            justification,
+            causes);
+    }
+}
+
 // ── AuthorityLink ──────────────────────────────────────────────────────
 
 /// <summary>A single link in an authority chain — actor, level, and weight.</summary>

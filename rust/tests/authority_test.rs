@@ -4,6 +4,7 @@ use eventgraph::actor::{Actor, ActorStatus, ActorType};
 use eventgraph::authority::{
     AuthorityChain, AuthorityPolicy, AuthorityRequestContent, DefaultAuthorityChain,
     PROTECTED_ACTION_PRODUCTION_DEPLOY, PROTECTED_ACTIONS, is_protected_action, matches_action,
+    protected_side_effect_request_content,
 };
 use eventgraph::decision::AuthorityLevel;
 use eventgraph::trust::{DefaultTrustModel, TrustConfig};
@@ -207,6 +208,42 @@ fn test_authority_request_content_carries_canonical_action_and_causes() {
     assert_eq!(content.level, AuthorityLevel::Required);
     assert_eq!(content.justification, "release requires operator approval");
     assert_eq!(content.causes, vec![cause]);
+}
+
+#[test]
+fn test_protected_side_effect_requests_are_record_only_and_required() {
+    let cause = EventId::new("019462a0-0000-7000-8000-000000000001").unwrap();
+    for action in PROTECTED_ACTIONS {
+        let content = protected_side_effect_request_content(
+            action,
+            ActorId::new("actor_alice").unwrap(),
+            "DF-SOP-0001 requires authority before executing protected side effects".to_string(),
+            vec![cause.clone()],
+        )
+        .unwrap();
+
+        assert_eq!(content.action, action);
+        assert_eq!(content.actor.value(), "actor_alice");
+        assert_eq!(content.level, AuthorityLevel::Required);
+        assert_eq!(
+            content.justification,
+            "DF-SOP-0001 requires authority before executing protected side effects"
+        );
+        assert_eq!(content.causes, vec![cause.clone()]);
+    }
+}
+
+#[test]
+fn test_protected_side_effect_requests_reject_aliases() {
+    let err = protected_side_effect_request_content(
+        "deploy.production",
+        ActorId::new("actor_alice").unwrap(),
+        "alias must not execute".to_string(),
+        vec![EventId::new("019462a0-0000-7000-8000-000000000001").unwrap()],
+    )
+    .unwrap_err();
+
+    assert!(err.to_string().contains("ProtectedAction"));
 }
 
 // ── matches_action unit tests ────────────────────────────────────────

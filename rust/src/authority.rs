@@ -40,6 +40,28 @@ pub fn is_protected_action(action: &str) -> bool {
     PROTECTED_ACTIONS.contains(&action)
 }
 
+pub fn protected_side_effect_request_content(
+    action: &str,
+    actor: ActorId,
+    justification: String,
+    causes: Vec<EventId>,
+) -> Result<AuthorityRequestContent> {
+    if !is_protected_action(action) {
+        return Err(crate::errors::EventGraphError::InvalidFormat {
+            type_name: "ProtectedAction",
+            value: action.to_string(),
+            expected: "DF-SOP-0001 protected action",
+        });
+    }
+    Ok(AuthorityRequestContent {
+        action: action.to_string(),
+        actor,
+        level: AuthorityLevel::Required,
+        justification,
+        causes,
+    })
+}
+
 // ── AuthorityRequestContent ───────────────────────────────────────────
 
 #[derive(Debug, Clone, PartialEq, Eq)]

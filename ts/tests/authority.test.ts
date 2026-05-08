@@ -5,6 +5,7 @@ import {
   isProtectedAction,
   matchesAction,
   AuthorityLevel,
+  protectedSideEffectRequestContent,
   ProtectedAction,
   PROTECTED_ACTIONS,
 } from "../src/authority.js";
@@ -217,6 +218,37 @@ describe("ProtectedAction vocabulary", () => {
       Justification: "release requires operator approval",
       Causes: [cause.value],
     });
+  });
+
+  it("records every DF-SOP-0001 protected side effect as Required authority without execution", () => {
+    const cause = newEventId();
+    for (const action of PROTECTED_ACTIONS) {
+      const content = protectedSideEffectRequestContent(
+        action,
+        new ActorId("actor_alice"),
+        "DF-SOP-0001 requires authority before executing protected side effects",
+        [cause],
+      );
+
+      expect(content).toEqual({
+        Action: action,
+        Actor: "actor_alice",
+        Level: "Required",
+        Justification: "DF-SOP-0001 requires authority before executing protected side effects",
+        Causes: [cause.value],
+      });
+    }
+  });
+
+  it("rejects protected side effect aliases before request evidence is recorded", () => {
+    expect(() =>
+      protectedSideEffectRequestContent(
+        "deploy.production",
+        new ActorId("actor_alice"),
+        "alias must not execute",
+        [newEventId()],
+      ),
+    ).toThrow("unknown protected action deploy.production");
   });
 });
 

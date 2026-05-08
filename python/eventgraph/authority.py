@@ -44,6 +44,24 @@ def is_protected_action(action: str) -> bool:
     return action in PROTECTED_ACTIONS
 
 
+def protected_side_effect_request_content(
+    action: str,
+    actor: ActorID,
+    justification: str,
+    causes: list[EventID],
+) -> AuthorityRequestContent:
+    """Create record-only authority.requested content for a DF-SOP-0001 action."""
+    if not is_protected_action(action):
+        raise ValueError(f"unknown protected action {action}")
+    return AuthorityRequestContent(
+        action=action,
+        actor=actor,
+        level=AuthorityLevel.REQUIRED,
+        justification=justification,
+        causes=causes,
+    )
+
+
 # ── Value Types ──────────────────────────────────────────────────────────
 
 

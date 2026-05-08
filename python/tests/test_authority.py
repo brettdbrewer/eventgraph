@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from eventgraph.authority import (
     AuthorityLink,
     AuthorityPolicy,
@@ -12,6 +14,7 @@ from eventgraph.authority import (
     PROTECTED_ACTION_PRODUCTION_DEPLOY,
     is_protected_action,
     matches_action,
+    protected_side_effect_request_content,
 )
 from eventgraph.decision import AuthorityLevel
 from eventgraph.trust import DefaultTrustModel, TrustConfig
@@ -231,6 +234,35 @@ def test_authority_request_content_carries_canonical_action_and_causes() -> None
         "Justification": "release requires operator approval",
         "Causes": [cause.value],
     }
+
+
+def test_protected_side_effect_requests_are_record_only_and_required() -> None:
+    cause = new_event_id()
+    for action in PROTECTED_ACTIONS:
+        content = protected_side_effect_request_content(
+            action=action,
+            actor=ActorID("actor_alice"),
+            justification="DF-SOP-0001 requires authority before executing protected side effects",
+            causes=[cause],
+        )
+
+        assert content.to_event_content() == {
+            "Action": action,
+            "Actor": "actor_alice",
+            "Level": "Required",
+            "Justification": "DF-SOP-0001 requires authority before executing protected side effects",
+            "Causes": [cause.value],
+        }
+
+
+def test_protected_side_effect_requests_reject_aliases() -> None:
+    with pytest.raises(ValueError, match="unknown protected action deploy.production"):
+        protected_side_effect_request_content(
+            action="deploy.production",
+            actor=ActorID("actor_alice"),
+            justification="alias must not execute",
+            causes=[new_event_id()],
+        )
 
 
 # ── matches_action helper tests ─────────────────────────────────────────

@@ -19,6 +19,7 @@ from .authority import (
     PROTECTED_ACTION_SELF_MODIFICATION_ACTIVATE,
     is_protected_action,
     matches_action,
+    protected_side_effect_request_content,
 )
 from .actor import (
     Actor,

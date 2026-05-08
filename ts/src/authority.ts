@@ -65,6 +65,24 @@ export function authorityRequestContent(
   };
 }
 
+export function protectedSideEffectRequestContent(
+  action: string,
+  actor: ActorId,
+  justification: string,
+  causes: EventId[],
+): AuthorityRequestContent {
+  if (!isProtectedAction(action)) {
+    throw new Error(`unknown protected action ${action}`);
+  }
+  return authorityRequestContent(
+    action,
+    actor,
+    AuthorityLevel.Required,
+    justification,
+    causes,
+  );
+}
+
 // ── AuthorityLink ─────────────────────────────────────────────────────────
 
 /** A link in an authority chain. */

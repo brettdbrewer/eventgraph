@@ -16,7 +16,7 @@ This artifact is a repo-local working scorecard. It does not unblock external ru
 | 4 | Actor identity and signatures | partial | Actor registry, public-key lookup, signature-shape, and EGIP signature verification tests exist. Production identity guardrail evidence is cross-repo in `agent`, not kernel-local. |
 | 5 | Lifecycle/status transitions | passing | Cross-language lifecycle vectors now run by default. |
 | 6 | Authority records | passing | `authority.requested` content and protected action vocabulary are covered across bindings. |
-| 7 | Protected side-effect denial | true blocker | EventGraph now has canonical authority request records, but no kernel-local denial/request evidence suite covers every protected side effect. |
+| 7 | Protected side-effect denial | passing | Record-only protected side-effect request helpers cover every DF-SOP-0001 protected action and reject incompatible aliases. |
 | 8 | Trust and decision records | partial | Trust record content is typed, serialized, hashed, stored, and causally linked. Decision model tests exist, but decision event record conformance is not yet complete. |
 | 9 | Projection rebuild boundary | true blocker | Product projection rebuild examples are documented, but no deterministic kernel replay artifact proves Work readiness, Work phase gates, or Hive authority audit views rebuild without hidden side channels. |
 | 10 | Environment-sensitive tests | passing with classified skips | Skip inventory exists and classifies database/provider/environment-sensitive tests. |
@@ -192,7 +192,7 @@ Disposition: no authority-record blocker found.
 
 ## 7. Protected Side-Effect Denial
 
-Status: true blocker.
+Status: passing.
 
 Required protected actions:
 
@@ -206,17 +206,28 @@ Required protected actions:
 - `secret.access`
 - `policy.change`
 
-Current evidence:
+Evidence:
 
 - Canonical action names exist.
 - `authority.requested` content can record a protected action request with actor, level, justification, and causes.
+- Record-only protected side-effect request helpers exist in Go, TypeScript, Python, Rust, and .NET.
+- Tests iterate all nine `DF-SOP-0001` protected actions and prove each records `Required` authority without accepting an execution command or callback.
+- Tests reject incompatible aliases such as `deploy.production`.
 
-Gap:
+Required evidence locations:
 
-- No kernel-local denial/request conformance suite proves that unauthorized attempts for every protected action produce audit-readable denial or request evidence while executing no side effect.
-- No scorecard test yet proves that these cases fail closed as records only.
+- `go/pkg/event/protected_action.go`
+- `go/pkg/event/event_test.go`
+- `ts/src/authority.ts`
+- `ts/tests/authority.test.ts`
+- `python/eventgraph/authority.py`
+- `python/tests/test_authority.py`
+- `rust/src/authority.rs`
+- `rust/tests/authority_test.rs`
+- `dotnet/src/EventGraph/Authority.cs`
+- `dotnet/tests/EventGraph.Tests/AuthorityTests.cs`
 
-Disposition: true blocker for final Phase 2 conformance. Next implementation slice should add dry-run protected side-effect denial vectors/tests without executing any protected side effect.
+Disposition: no protected side-effect denial blocker found. This kernel evidence remains request/denial-record only and does not execute protected side effects.
 
 ## 8. Trust and Decision Records
 
@@ -288,9 +299,8 @@ Disposition: no unclassified environment-sensitive skip blocker found.
 
 Proceed in scorecard order:
 
-1. Add protected side-effect denial vectors/tests for all protected actions.
-2. Add decision event record conformance with typed content, canonical serialization, store append/query, and causal evidence.
-3. Add deterministic projection rebuild fixtures/tests for Work readiness, Work phase gates, and Hive authority audit views.
-4. Add a final cross-repo evidence note for Agent production identity guardrails before conformance closure.
+1. Add decision event record conformance with typed content, canonical serialization, store append/query, and causal evidence.
+2. Add deterministic projection rebuild fixtures/tests for Work readiness, Work phase gates, and Hive authority audit views.
+3. Add a final cross-repo evidence note for Agent production identity guardrails before conformance closure.
 
 Do not begin external runtime integration until these items pass or are explicitly accepted by ADR/risk process.

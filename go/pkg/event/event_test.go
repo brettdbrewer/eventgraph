@@ -108,6 +108,58 @@ func TestAuthorityRequestContentUsesProtectedActionAndCausalReferences(t *testin
 	}
 }
 
+func TestProtectedSideEffectRequestsAreRecordOnlyAndRequired(t *testing.T) {
+	cause := types.MustEventID("019462a0-0000-7000-8000-000000000001")
+	causes, err := types.NewNonEmpty([]types.EventID{cause})
+	if err != nil {
+		t.Fatalf("NewNonEmpty returned error: %v", err)
+	}
+
+	for _, action := range ProtectedActions() {
+		content, err := NewProtectedSideEffectRequest(
+			string(action),
+			types.MustActorID("actor_alice"),
+			"DF-SOP-0001 requires authority before executing protected side effects",
+			causes,
+		)
+		if err != nil {
+			t.Fatalf("NewProtectedSideEffectRequest(%q) returned error: %v", action, err)
+		}
+
+		if content.EventTypeName() != "authority.requested" {
+			t.Errorf("%s EventTypeName = %q, want authority.requested", action, content.EventTypeName())
+		}
+		if content.Action != string(action) {
+			t.Errorf("Action = %q, want %q", content.Action, action)
+		}
+		if content.Level != AuthorityLevelRequired {
+			t.Errorf("%s Level = %q, want Required", action, content.Level)
+		}
+		if content.Actor.Value() != "actor_alice" {
+			t.Errorf("%s Actor = %q, want actor_alice", action, content.Actor.Value())
+		}
+		if content.Justification == "" {
+			t.Errorf("%s Justification must be audit-readable", action)
+		}
+		allCauses := content.Causes.All()
+		if len(allCauses) != 1 || allCauses[0] != cause {
+			t.Errorf("%s Causes = %+v, want [%s]", action, content.Causes, cause)
+		}
+	}
+}
+
+func TestProtectedSideEffectRequestRejectsAliases(t *testing.T) {
+	cause := types.MustEventID("019462a0-0000-7000-8000-000000000001")
+	causes, err := types.NewNonEmpty([]types.EventID{cause})
+	if err != nil {
+		t.Fatalf("NewNonEmpty returned error: %v", err)
+	}
+
+	if _, err := NewProtectedSideEffectRequest("deploy.production", types.MustActorID("actor_alice"), "alias must not execute", causes); err == nil {
+		t.Fatal("expected incompatible protected action alias to be rejected")
+	}
+}
+
 func TestDecisionOutcomeIsValid(t *testing.T) {
 	valid := []DecisionOutcome{DecisionOutcomePermit, DecisionOutcomeDeny, DecisionOutcomeDefer, DecisionOutcomeEscalate}
 	for _, do := range valid {
