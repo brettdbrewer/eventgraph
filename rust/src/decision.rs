@@ -11,7 +11,7 @@ use serde_json::Value;
 
 use crate::errors::{EventGraphError, Result};
 use crate::event::Event;
-use crate::types::{ActorId, Score};
+use crate::types::{ActorId, EventId, Score};
 
 // ── Enums ─────────────────────────────────────────────────────────────
 
@@ -111,6 +111,38 @@ pub struct Condition {
 pub struct PathStep {
     pub condition: Condition,
     pub branch: MatchValue,
+}
+
+/// Typed content for a durable `decision.recorded` kernel event.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DecisionRecordContent {
+    pub actor: ActorId,
+    pub action: String,
+    pub outcome: DecisionOutcome,
+    pub confidence: Score,
+    pub rationale: String,
+    pub evidence: Vec<EventId>,
+}
+
+impl DecisionRecordContent {
+    pub fn to_event_content(&self) -> BTreeMap<String, Value> {
+        BTreeMap::from([
+            ("Actor".to_string(), Value::String(self.actor.value().to_string())),
+            ("Action".to_string(), Value::String(self.action.clone())),
+            ("Outcome".to_string(), Value::String(format!("{:?}", self.outcome))),
+            ("Confidence".to_string(), Value::from(self.confidence.value())),
+            ("Rationale".to_string(), Value::String(self.rationale.clone())),
+            (
+                "Evidence".to_string(),
+                Value::Array(
+                    self.evidence
+                        .iter()
+                        .map(|event_id| Value::String(event_id.value().to_string()))
+                        .collect(),
+                ),
+            ),
+        ])
+    }
 }
 
 /// Maps a match value to a child node.

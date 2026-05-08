@@ -17,7 +17,7 @@ This artifact is a repo-local working scorecard. It does not unblock external ru
 | 5 | Lifecycle/status transitions | passing | Cross-language lifecycle vectors now run by default. |
 | 6 | Authority records | passing | `authority.requested` content and protected action vocabulary are covered across bindings. |
 | 7 | Protected side-effect denial | passing | Record-only protected side-effect request helpers cover every DF-SOP-0001 protected action and reject incompatible aliases. |
-| 8 | Trust and decision records | partial | Trust record content is typed, serialized, hashed, stored, and causally linked. Decision model tests exist, but decision event record conformance is not yet complete. |
+| 8 | Trust and decision records | passing | Trust record content and `decision.recorded` content are typed, serialized, hashed, stored, queried, and causally linked. |
 | 9 | Projection rebuild boundary | true blocker | Product projection rebuild examples are documented, but no deterministic kernel replay artifact proves Work readiness, Work phase gates, or Hive authority audit views rebuild without hidden side channels. |
 | 10 | Environment-sensitive tests | passing with classified skips | Skip inventory exists and classifies database/provider/environment-sensitive tests. |
 
@@ -231,21 +231,26 @@ Disposition: no protected side-effect denial blocker found. This kernel evidence
 
 ## 8. Trust and Decision Records
 
-Status: partial.
+Status: passing.
 
 Required evidence:
 
 - `go/pkg/event/content.go`
 - `go/pkg/event/event_types.go`
-- `go/pkg/event/conformance_test.go`
+- `go/pkg/event/event_test.go`
+- `go/pkg/store/store_test.go`
 - `go/pkg/trust/model_test.go`
 - `go/pkg/decision`
+- `ts/src/decision.ts`
 - `ts/tests/trust.test.ts`
 - `ts/tests/decision.test.ts`
+- `python/eventgraph/decision.py`
 - `python/tests/test_trust.py`
 - `python/tests/test_decision.py`
+- `rust/src/decision.rs`
 - `rust/tests/trust_test.rs`
 - `rust/tests/decision_test.rs`
+- `dotnet/src/EventGraph/Decision.cs`
 - `dotnet/tests/EventGraph.Tests/DecisionTests.cs`
 
 Covered behavior:
@@ -254,14 +259,12 @@ Covered behavior:
 - trust updated content serialization vectors
 - decision model and evaluator tests
 - causal evidence used by trust model tests
+- typed `decision.recorded` content with actor, action, outcome, confidence, rationale, and evidence
+- `decision.recorded` content canonical serialization in TypeScript, Python, Rust, and .NET
+- `decision.recorded` event type registration, unmarshal, visitor dispatch, hashing, append, type query, and ancestor traversal in Go
+- `decision.recorded` hash, append, type query, and ancestor traversal coverage in TypeScript, Python, Rust, and .NET
 
-Gap:
-
-- The scorecard requires typed content tests and causal evidence tests for trust and decision event records.
-- Trust event records have stronger kernel evidence than decision event records.
-- Decision event record shape and causal-link evidence need a dedicated conformance slice.
-
-Disposition: partial. Decision event record conformance remains a Phase 2 scorecard item.
+Disposition: no trust or decision record blocker found. Provider reasoning and LLM integrations remain outside the kernel boundary; this item covers durable record shape and causal evidence only.
 
 ## 9. Projection Rebuild Boundary
 
@@ -299,8 +302,7 @@ Disposition: no unclassified environment-sensitive skip blocker found.
 
 Proceed in scorecard order:
 
-1. Add decision event record conformance with typed content, canonical serialization, store append/query, and causal evidence.
-2. Add deterministic projection rebuild fixtures/tests for Work readiness, Work phase gates, and Hive authority audit views.
-3. Add a final cross-repo evidence note for Agent production identity guardrails before conformance closure.
+1. Add deterministic projection rebuild fixtures/tests for Work readiness, Work phase gates, and Hive authority audit views.
+2. Add a final cross-repo evidence note for Agent production identity guardrails before conformance closure.
 
 Do not begin external runtime integration until these items pass or are explicitly accepted by ADR/risk process.

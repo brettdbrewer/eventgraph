@@ -35,6 +35,39 @@ public class DecisionTests
         },
         null);
 
+    [Fact]
+    public void DecisionRecordContentSerializesHashesStoresQueriesAndPreservesCausality()
+    {
+        var store = new InMemoryStore();
+        var signer = new NoopSigner();
+        var actor = new ActorId("actor_alice");
+        var boot = store.Append(EventFactory.CreateBootstrap(actor, signer));
+        var content = new DecisionRecordContent(
+            actor,
+            "repo.merge.main",
+            DecisionOutcome.Deny,
+            new Score(0.91),
+            "missing authority approval",
+            new[] { boot.Id }).ToEventContent();
+
+        Assert.Equal(
+            $"{{\"Action\":\"repo.merge.main\",\"Actor\":\"actor_alice\",\"Confidence\":0.91,\"Evidence\":[\"{boot.Id.Value}\"],\"Outcome\":\"Deny\",\"Rationale\":\"missing authority approval\"}}",
+            CanonicalForm.CanonicalContentJson(content));
+
+        var decision = store.Append(EventFactory.CreateEvent(
+            new EventType("decision.recorded"),
+            actor,
+            content,
+            new List<EventId> { boot.Id },
+            new ConversationId("conv_decision"),
+            boot.Hash,
+            signer));
+
+        Assert.Equal(64, decision.Hash.Value.Length);
+        Assert.Equal(decision.Id, store.ByType(new EventType("decision.recorded"), 10)[0].Id);
+        Assert.Contains(store.Ancestors(decision.Id, 10), ev => ev.Id == boot.Id);
+    }
+
     // ── MechanicalLeaf ──────────────────────────────────────────────────
 
     [Fact]

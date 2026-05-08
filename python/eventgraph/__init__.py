@@ -38,6 +38,7 @@ from .decision import (
     DecisionError,
     DecisionNode,
     DecisionOutcome,
+    DecisionRecordContent,
     DecisionTree,
     EvaluateInput,
     EvolutionConfig,

@@ -33,6 +33,7 @@ func init() {
 		"chain.broken":             unmarshal[ChainBrokenContent],
 		"clock.tick":               unmarshal[ClockTickContent],
 		"health.report":            unmarshal[HealthReportContent],
+		"decision.recorded":        unmarshal[DecisionRecordedContent],
 		"decision.branch.proposed": unmarshal[BranchProposedContent],
 		"decision.branch.inserted": unmarshal[BranchInsertedContent],
 		"decision.cost.report":     unmarshal[CostReportContent],

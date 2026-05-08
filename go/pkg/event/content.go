@@ -46,7 +46,8 @@ type EventContentVisitor interface {
 	VisitBootstrap(BootstrapContent)
 	VisitClockTick(ClockTickContent)
 	VisitHealthReport(HealthReportContent)
-	// Decision tree
+	// Decision records and tree
+	VisitDecisionRecorded(DecisionRecordedContent)
 	VisitBranchProposed(BranchProposedContent)
 	VisitBranchInserted(BranchInsertedContent)
 	VisitCostReport(CostReportContent)
@@ -84,7 +85,7 @@ type TrustUpdatedContent struct {
 	Cause    types.EventID     `json:"Cause"`
 }
 
-func (c TrustUpdatedContent) EventTypeName() string    { return "trust.updated" }
+func (c TrustUpdatedContent) EventTypeName() string        { return "trust.updated" }
 func (c TrustUpdatedContent) Accept(v EventContentVisitor) { v.VisitTrustUpdated(c) }
 
 // TrustScoreContent is emitted when a trust score snapshot is recorded.
@@ -93,7 +94,7 @@ type TrustScoreContent struct {
 	Metrics TrustMetrics  `json:"Metrics"`
 }
 
-func (c TrustScoreContent) EventTypeName() string    { return "trust.score" }
+func (c TrustScoreContent) EventTypeName() string        { return "trust.score" }
 func (c TrustScoreContent) Accept(v EventContentVisitor) { v.VisitTrustScore(c) }
 
 // TrustDecayedContent is emitted when trust decays over time.
@@ -105,21 +106,21 @@ type TrustDecayedContent struct {
 	Rate     types.Score    `json:"Rate"`
 }
 
-func (c TrustDecayedContent) EventTypeName() string    { return "trust.decayed" }
+func (c TrustDecayedContent) EventTypeName() string        { return "trust.decayed" }
 func (c TrustDecayedContent) Accept(v EventContentVisitor) { v.VisitTrustDecayed(c) }
 
 // --- Authority content ---
 
 // AuthorityRequestContent is emitted when an authority request is made.
 type AuthorityRequestContent struct {
-	Action        string                       `json:"Action"`
-	Actor         types.ActorID                `json:"Actor"`
-	Level         AuthorityLevel               `json:"Level"`
-	Justification string                       `json:"Justification"`
+	Action        string                        `json:"Action"`
+	Actor         types.ActorID                 `json:"Actor"`
+	Level         AuthorityLevel                `json:"Level"`
+	Justification string                        `json:"Justification"`
 	Causes        types.NonEmpty[types.EventID] `json:"Causes"`
 }
 
-func (c AuthorityRequestContent) EventTypeName() string    { return "authority.requested" }
+func (c AuthorityRequestContent) EventTypeName() string        { return "authority.requested" }
 func (c AuthorityRequestContent) Accept(v EventContentVisitor) { v.VisitAuthorityRequested(c) }
 
 // AuthorityResolvedContent is emitted when an authority request is resolved.
@@ -130,19 +131,19 @@ type AuthorityResolvedContent struct {
 	Reason    types.Option[string] `json:"Reason"`
 }
 
-func (c AuthorityResolvedContent) EventTypeName() string    { return "authority.resolved" }
+func (c AuthorityResolvedContent) EventTypeName() string        { return "authority.resolved" }
 func (c AuthorityResolvedContent) Accept(v EventContentVisitor) { v.VisitAuthorityResolved(c) }
 
 // AuthorityDelegatedContent is emitted when authority is delegated.
 type AuthorityDelegatedContent struct {
-	From      types.ActorID                `json:"From"`
-	To        types.ActorID                `json:"To"`
-	Scope     types.DomainScope            `json:"Scope"`
-	Weight    types.Score                  `json:"Weight"`
+	From      types.ActorID                 `json:"From"`
+	To        types.ActorID                 `json:"To"`
+	Scope     types.DomainScope             `json:"Scope"`
+	Weight    types.Score                   `json:"Weight"`
 	ExpiresAt types.Option[types.Timestamp] `json:"ExpiresAt"`
 }
 
-func (c AuthorityDelegatedContent) EventTypeName() string    { return "authority.delegated" }
+func (c AuthorityDelegatedContent) EventTypeName() string        { return "authority.delegated" }
 func (c AuthorityDelegatedContent) Accept(v EventContentVisitor) { v.VisitAuthorityDelegated(c) }
 
 // AuthorityRevokedContent is emitted when authority is revoked.
@@ -153,7 +154,7 @@ type AuthorityRevokedContent struct {
 	Reason types.EventID     `json:"Reason"`
 }
 
-func (c AuthorityRevokedContent) EventTypeName() string    { return "authority.revoked" }
+func (c AuthorityRevokedContent) EventTypeName() string        { return "authority.revoked" }
 func (c AuthorityRevokedContent) Accept(v EventContentVisitor) { v.VisitAuthorityRevoked(c) }
 
 // AuthorityTimeoutContent is emitted when an authority request times out.
@@ -163,19 +164,19 @@ type AuthorityTimeoutContent struct {
 	Duration  types.Duration `json:"Duration"`
 }
 
-func (c AuthorityTimeoutContent) EventTypeName() string    { return "authority.timeout" }
+func (c AuthorityTimeoutContent) EventTypeName() string        { return "authority.timeout" }
 func (c AuthorityTimeoutContent) Accept(v EventContentVisitor) { v.VisitAuthorityTimeout(c) }
 
 // --- Actor content ---
 
 // ActorRegisteredContent is emitted when a new actor is registered.
 type ActorRegisteredContent struct {
-	ActorID   types.ActorID  `json:"ActorID"`
+	ActorID   types.ActorID   `json:"ActorID"`
 	PublicKey types.PublicKey `json:"PublicKey"`
-	Type      ActorType      `json:"Type"`
+	Type      ActorType       `json:"Type"`
 }
 
-func (c ActorRegisteredContent) EventTypeName() string    { return "actor.registered" }
+func (c ActorRegisteredContent) EventTypeName() string        { return "actor.registered" }
 func (c ActorRegisteredContent) Accept(v EventContentVisitor) { v.VisitActorRegistered(c) }
 
 // ActorSuspendedContent is emitted when an actor is suspended.
@@ -184,7 +185,7 @@ type ActorSuspendedContent struct {
 	Reason  types.EventID `json:"Reason"`
 }
 
-func (c ActorSuspendedContent) EventTypeName() string    { return "actor.suspended" }
+func (c ActorSuspendedContent) EventTypeName() string        { return "actor.suspended" }
 func (c ActorSuspendedContent) Accept(v EventContentVisitor) { v.VisitActorSuspended(c) }
 
 // ActorMemorialContent is emitted when an actor is memorialised.
@@ -193,47 +194,47 @@ type ActorMemorialContent struct {
 	Reason  types.EventID `json:"Reason"`
 }
 
-func (c ActorMemorialContent) EventTypeName() string    { return "actor.memorial" }
+func (c ActorMemorialContent) EventTypeName() string        { return "actor.memorial" }
 func (c ActorMemorialContent) Accept(v EventContentVisitor) { v.VisitActorMemorial(c) }
 
 // --- Edge content ---
 
 // EdgeCreatedContent is emitted when a new edge is created.
 type EdgeCreatedContent struct {
-	From      types.ActorID                `json:"From"`
-	To        types.ActorID                `json:"To"`
-	EdgeType  EdgeType                     `json:"EdgeType"`
-	Weight    types.Weight                 `json:"Weight"`
-	Direction EdgeDirection                `json:"Direction"`
-	Scope     types.Option[types.DomainScope]  `json:"Scope"`
-	ExpiresAt types.Option[types.Timestamp]    `json:"ExpiresAt"`
+	From      types.ActorID                   `json:"From"`
+	To        types.ActorID                   `json:"To"`
+	EdgeType  EdgeType                        `json:"EdgeType"`
+	Weight    types.Weight                    `json:"Weight"`
+	Direction EdgeDirection                   `json:"Direction"`
+	Scope     types.Option[types.DomainScope] `json:"Scope"`
+	ExpiresAt types.Option[types.Timestamp]   `json:"ExpiresAt"`
 }
 
-func (c EdgeCreatedContent) EventTypeName() string    { return "edge.created" }
+func (c EdgeCreatedContent) EventTypeName() string        { return "edge.created" }
 func (c EdgeCreatedContent) Accept(v EventContentVisitor) { v.VisitEdgeCreated(c) }
 
 // EdgeSupersededContent is emitted when an edge is superseded.
 type EdgeSupersededContent struct {
-	PreviousEdge types.EdgeID              `json:"PreviousEdge"`
+	PreviousEdge types.EdgeID               `json:"PreviousEdge"`
 	NewEdge      types.Option[types.EdgeID] `json:"NewEdge"`
-	Reason       types.EventID             `json:"Reason"`
+	Reason       types.EventID              `json:"Reason"`
 }
 
-func (c EdgeSupersededContent) EventTypeName() string    { return "edge.superseded" }
+func (c EdgeSupersededContent) EventTypeName() string        { return "edge.superseded" }
 func (c EdgeSupersededContent) Accept(v EventContentVisitor) { v.VisitEdgeSuperseded(c) }
 
 // --- Integrity content ---
 
 // ViolationDetectedContent is emitted when a violation is detected.
 type ViolationDetectedContent struct {
-	Expectation types.EventID                `json:"Expectation"`
-	Actor       types.ActorID                `json:"Actor"`
-	Severity    SeverityLevel                `json:"Severity"`
-	Description string                       `json:"Description"`
+	Expectation types.EventID                 `json:"Expectation"`
+	Actor       types.ActorID                 `json:"Actor"`
+	Severity    SeverityLevel                 `json:"Severity"`
+	Description string                        `json:"Description"`
 	Evidence    types.NonEmpty[types.EventID] `json:"Evidence"`
 }
 
-func (c ViolationDetectedContent) EventTypeName() string    { return "violation.detected" }
+func (c ViolationDetectedContent) EventTypeName() string        { return "violation.detected" }
 func (c ViolationDetectedContent) Accept(v EventContentVisitor) { v.VisitViolationDetected(c) }
 
 // ChainVerifiedContent is emitted after chain verification completes.
@@ -243,7 +244,7 @@ type ChainVerifiedContent struct {
 	Duration types.Duration `json:"Duration"`
 }
 
-func (c ChainVerifiedContent) EventTypeName() string    { return "chain.verified" }
+func (c ChainVerifiedContent) EventTypeName() string        { return "chain.verified" }
 func (c ChainVerifiedContent) Accept(v EventContentVisitor) { v.VisitChainVerified(c) }
 
 // ChainBrokenContent is emitted when a chain break is detected.
@@ -253,7 +254,7 @@ type ChainBrokenContent struct {
 	Actual   types.Hash `json:"Actual"`
 }
 
-func (c ChainBrokenContent) EventTypeName() string    { return "chain.broken" }
+func (c ChainBrokenContent) EventTypeName() string        { return "chain.broken" }
 func (c ChainBrokenContent) Accept(v EventContentVisitor) { v.VisitChainBroken(c) }
 
 // --- System content ---
@@ -265,7 +266,7 @@ type BootstrapContent struct {
 	Timestamp    types.Timestamp `json:"Timestamp"`
 }
 
-func (c BootstrapContent) EventTypeName() string    { return "system.bootstrapped" }
+func (c BootstrapContent) EventTypeName() string        { return "system.bootstrapped" }
 func (c BootstrapContent) Accept(v EventContentVisitor) { v.VisitBootstrap(c) }
 
 // ClockTickContent is emitted for each tick.
@@ -275,17 +276,17 @@ type ClockTickContent struct {
 	Elapsed   types.Duration  `json:"Elapsed"`
 }
 
-func (c ClockTickContent) EventTypeName() string    { return "clock.tick" }
+func (c ClockTickContent) EventTypeName() string        { return "clock.tick" }
 func (c ClockTickContent) Accept(v EventContentVisitor) { v.VisitClockTick(c) }
 
 // HealthReportContent is emitted for health checks.
 // Use NewHealthReportContent to ensure defensive copying of PrimitiveHealth.
 type HealthReportContent struct {
-	Overall         types.Score                       `json:"Overall"`
-	ChainIntegrity  bool                              `json:"ChainIntegrity"`
+	Overall         types.Score `json:"Overall"`
+	ChainIntegrity  bool        `json:"ChainIntegrity"`
 	primitiveHealth map[types.PrimitiveID]types.Score
-	ActiveActors    int                               `json:"ActiveActors"`
-	EventRate       float64                           `json:"EventRate"`
+	ActiveActors    int     `json:"ActiveActors"`
+	EventRate       float64 `json:"EventRate"`
 }
 
 // PrimitiveHealth returns a defensive copy of the primitive health map.
@@ -365,10 +366,26 @@ func NewHealthReportContent(overall types.Score, chainIntegrity bool, primitiveH
 	}
 }
 
-func (c HealthReportContent) EventTypeName() string    { return "health.report" }
+func (c HealthReportContent) EventTypeName() string        { return "health.report" }
 func (c HealthReportContent) Accept(v EventContentVisitor) { v.VisitHealthReport(c) }
 
-// --- Decision tree content ---
+// --- Decision record and tree content ---
+
+// DecisionRecordedContent is emitted when a policy, human, committee, or
+// mechanical evaluator records a durable decision outcome.
+type DecisionRecordedContent struct {
+	Actor      types.ActorID                 `json:"Actor"`
+	Action     string                        `json:"Action"`
+	Outcome    DecisionOutcome               `json:"Outcome"`
+	Confidence types.Score                   `json:"Confidence"`
+	Rationale  string                        `json:"Rationale"`
+	Evidence   types.NonEmpty[types.EventID] `json:"Evidence"`
+}
+
+func (c DecisionRecordedContent) EventTypeName() string { return "decision.recorded" }
+func (c DecisionRecordedContent) Accept(v EventContentVisitor) {
+	v.VisitDecisionRecorded(c)
+}
 
 // BranchProposedContent is emitted when a decision tree branch is proposed.
 type BranchProposedContent struct {
@@ -380,7 +397,7 @@ type BranchProposedContent struct {
 	SampleSize  int               `json:"SampleSize"`
 }
 
-func (c BranchProposedContent) EventTypeName() string    { return "decision.branch.proposed" }
+func (c BranchProposedContent) EventTypeName() string        { return "decision.branch.proposed" }
 func (c BranchProposedContent) Accept(v EventContentVisitor) { v.VisitBranchProposed(c) }
 
 // BranchInsertedContent is emitted when a decision tree branch is inserted.
@@ -392,7 +409,7 @@ type BranchInsertedContent struct {
 	Confidence  types.Score       `json:"Confidence"`
 }
 
-func (c BranchInsertedContent) EventTypeName() string    { return "decision.branch.inserted" }
+func (c BranchInsertedContent) EventTypeName() string        { return "decision.branch.inserted" }
 func (c BranchInsertedContent) Accept(v EventContentVisitor) { v.VisitBranchInserted(c) }
 
 // CostReportContent is emitted for decision tree cost reports.
@@ -405,24 +422,24 @@ type CostReportContent struct {
 	TotalTokens    int               `json:"TotalTokens"`
 }
 
-func (c CostReportContent) EventTypeName() string    { return "decision.cost.report" }
+func (c CostReportContent) EventTypeName() string        { return "decision.cost.report" }
 func (c CostReportContent) Accept(v EventContentVisitor) { v.VisitCostReport(c) }
 
 // --- Decision tree support types ---
 
 // Condition represents a decision tree condition.
 type Condition struct {
-	Field     types.FieldPath          `json:"Field"`
-	Operator  ConditionOperator        `json:"Operator"`
+	Field     types.FieldPath           `json:"Field"`
+	Operator  ConditionOperator         `json:"Operator"`
 	Threshold types.Option[types.Score] `json:"Threshold"`
-	Prompt    types.Option[string]     `json:"Prompt"`
+	Prompt    types.Option[string]      `json:"Prompt"`
 }
 
 // MatchValue is a tagged union — exactly one field must be Some.
 type MatchValue struct {
-	String    types.Option[string]         `json:"String"`
-	Number    types.Option[float64]        `json:"Number"`
-	Boolean   types.Option[bool]           `json:"Boolean"`
+	String    types.Option[string]          `json:"String"`
+	Number    types.Option[float64]         `json:"Number"`
+	Boolean   types.Option[bool]            `json:"Boolean"`
 	EventType types.Option[types.EventType] `json:"EventType"`
 }
 
@@ -453,8 +470,8 @@ type GrammarEmitContent struct {
 	Body string `json:"Body"`
 }
 
-func (c GrammarEmitContent) EventTypeName() string          { return "grammar.emit" }
-func (c GrammarEmitContent) Accept(v EventContentVisitor)   { v.VisitGrammarEmit(c) }
+func (c GrammarEmitContent) EventTypeName() string        { return "grammar.emit" }
+func (c GrammarEmitContent) Accept(v EventContentVisitor) { v.VisitGrammarEmit(c) }
 
 // GrammarRespondContent is emitted when causally dependent, subordinate content is created.
 type GrammarRespondContent struct {
@@ -555,16 +572,16 @@ type EGIPHelloSentContent struct {
 	To types.SystemURI `json:"To"`
 }
 
-func (c EGIPHelloSentContent) EventTypeName() string    { return "egip.hello.sent" }
+func (c EGIPHelloSentContent) EventTypeName() string        { return "egip.hello.sent" }
 func (c EGIPHelloSentContent) Accept(v EventContentVisitor) { v.VisitEGIPHelloSent(c) }
 
 // EGIPHelloReceivedContent records a HELLO received from a remote system.
 type EGIPHelloReceivedContent struct {
 	From      types.SystemURI `json:"From"`
-	PublicKey types.PublicKey  `json:"PublicKey"`
+	PublicKey types.PublicKey `json:"PublicKey"`
 }
 
-func (c EGIPHelloReceivedContent) EventTypeName() string    { return "egip.hello.received" }
+func (c EGIPHelloReceivedContent) EventTypeName() string        { return "egip.hello.received" }
 func (c EGIPHelloReceivedContent) Accept(v EventContentVisitor) { v.VisitEGIPHelloReceived(c) }
 
 // EGIPMessageSentContent records a message sent to a remote system.
@@ -573,7 +590,7 @@ type EGIPMessageSentContent struct {
 	EnvelopeID types.EnvelopeID `json:"EnvelopeID"`
 }
 
-func (c EGIPMessageSentContent) EventTypeName() string    { return "egip.message.sent" }
+func (c EGIPMessageSentContent) EventTypeName() string        { return "egip.message.sent" }
 func (c EGIPMessageSentContent) Accept(v EventContentVisitor) { v.VisitEGIPMessageSent(c) }
 
 // EGIPMessageReceivedContent records a message received from a remote system.
@@ -582,7 +599,7 @@ type EGIPMessageReceivedContent struct {
 	EnvelopeID types.EnvelopeID `json:"EnvelopeID"`
 }
 
-func (c EGIPMessageReceivedContent) EventTypeName() string    { return "egip.message.received" }
+func (c EGIPMessageReceivedContent) EventTypeName() string        { return "egip.message.received" }
 func (c EGIPMessageReceivedContent) Accept(v EventContentVisitor) { v.VisitEGIPMessageReceived(c) }
 
 // EGIPReceiptSentContent records a receipt sent for an envelope.
@@ -591,7 +608,7 @@ type EGIPReceiptSentContent struct {
 	Status     ReceiptStatus    `json:"Status"`
 }
 
-func (c EGIPReceiptSentContent) EventTypeName() string    { return "egip.receipt.sent" }
+func (c EGIPReceiptSentContent) EventTypeName() string        { return "egip.receipt.sent" }
 func (c EGIPReceiptSentContent) Accept(v EventContentVisitor) { v.VisitEGIPReceiptSent(c) }
 
 // EGIPReceiptReceivedContent records a receipt received for an envelope.
@@ -600,7 +617,7 @@ type EGIPReceiptReceivedContent struct {
 	Status     ReceiptStatus    `json:"Status"`
 }
 
-func (c EGIPReceiptReceivedContent) EventTypeName() string    { return "egip.receipt.received" }
+func (c EGIPReceiptReceivedContent) EventTypeName() string        { return "egip.receipt.received" }
 func (c EGIPReceiptReceivedContent) Accept(v EventContentVisitor) { v.VisitEGIPReceiptReceived(c) }
 
 // EGIPProofRequestedContent records a proof request to a remote system.
@@ -609,7 +626,7 @@ type EGIPProofRequestedContent struct {
 	ProofType ProofType       `json:"ProofType"`
 }
 
-func (c EGIPProofRequestedContent) EventTypeName() string    { return "egip.proof.requested" }
+func (c EGIPProofRequestedContent) EventTypeName() string        { return "egip.proof.requested" }
 func (c EGIPProofRequestedContent) Accept(v EventContentVisitor) { v.VisitEGIPProofRequested(c) }
 
 // EGIPProofReceivedContent records a proof received from a remote system.
@@ -618,7 +635,7 @@ type EGIPProofReceivedContent struct {
 	Valid  bool            `json:"Valid"`
 }
 
-func (c EGIPProofReceivedContent) EventTypeName() string    { return "egip.proof.received" }
+func (c EGIPProofReceivedContent) EventTypeName() string        { return "egip.proof.received" }
 func (c EGIPProofReceivedContent) Accept(v EventContentVisitor) { v.VisitEGIPProofReceived(c) }
 
 // EGIPTreatyProposedContent records a treaty proposal sent.
@@ -627,7 +644,7 @@ type EGIPTreatyProposedContent struct {
 	To       types.SystemURI `json:"To"`
 }
 
-func (c EGIPTreatyProposedContent) EventTypeName() string    { return "egip.treaty.proposed" }
+func (c EGIPTreatyProposedContent) EventTypeName() string        { return "egip.treaty.proposed" }
 func (c EGIPTreatyProposedContent) Accept(v EventContentVisitor) { v.VisitEGIPTreatyProposed(c) }
 
 // EGIPTreatyActiveContent records a treaty becoming active.
@@ -636,7 +653,7 @@ type EGIPTreatyActiveContent struct {
 	With     types.SystemURI `json:"With"`
 }
 
-func (c EGIPTreatyActiveContent) EventTypeName() string    { return "egip.treaty.active" }
+func (c EGIPTreatyActiveContent) EventTypeName() string        { return "egip.treaty.active" }
 func (c EGIPTreatyActiveContent) Accept(v EventContentVisitor) { v.VisitEGIPTreatyActive(c) }
 
 // EGIPTrustUpdatedContent records inter-system trust changes.
@@ -647,7 +664,7 @@ type EGIPTrustUpdatedContent struct {
 	Evidence types.EnvelopeID `json:"Evidence"`
 }
 
-func (c EGIPTrustUpdatedContent) EventTypeName() string    { return "egip.trust.updated" }
+func (c EGIPTrustUpdatedContent) EventTypeName() string        { return "egip.trust.updated" }
 func (c EGIPTrustUpdatedContent) Accept(v EventContentVisitor) { v.VisitEGIPTrustUpdated(c) }
 
 // --- Event Type Registry ---
@@ -724,7 +741,7 @@ func DefaultRegistry() *EventTypeRegistry {
 		EventTypeEdgeCreated, EventTypeEdgeSuperseded,
 		EventTypeViolationDetected, EventTypeChainVerified, EventTypeChainBroken,
 		EventTypeSystemBootstrapped, EventTypeClockTick, EventTypeHealthReport,
-		EventTypeDecisionBranchProposed, EventTypeDecisionBranchInserted, EventTypeDecisionCostReport,
+		EventTypeDecisionRecorded, EventTypeDecisionBranchProposed, EventTypeDecisionBranchInserted, EventTypeDecisionCostReport,
 		EventTypeGrammarEmit, EventTypeGrammarRespond, EventTypeGrammarDerive,
 		EventTypeGrammarExtend, EventTypeGrammarRetract, EventTypeGrammarAnnotate,
 		EventTypeGrammarMerge, EventTypeGrammarConsent,

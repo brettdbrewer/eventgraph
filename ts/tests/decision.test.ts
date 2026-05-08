@@ -8,6 +8,7 @@ import {
   InternalNode,
   LeafNode,
   DecisionTree,
+  decisionRecordContent,
   newLeaf,
   newLlmLeaf,
   evaluate,
@@ -24,9 +25,10 @@ import {
   type ResponseRecord,
   type Branch,
 } from "../src/decision.js";
-import { Score, ActorId, Option } from "../src/types.js";
+import { Score, ActorId, ConversationId, EventType, Option } from "../src/types.js";
 import { IntelligenceUnavailableError } from "../src/errors.js";
-import { Event } from "../src/event.js";
+import { canonicalContentJson, createBootstrap, createEvent, Event, NoopSigner } from "../src/event.js";
+import { InMemoryStore } from "../src/store.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -69,6 +71,41 @@ function makeHistory(
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────
+
+describe("DecisionRecordContent", () => {
+  it("serializes, hashes, stores, queries, and preserves causal evidence", () => {
+    const store = new InMemoryStore();
+    const signer = new NoopSigner();
+    const actor = new ActorId("actor_alice");
+    const boot = store.append(createBootstrap(actor, signer));
+    const content = decisionRecordContent(
+      actor,
+      "repo.merge.main",
+      DecisionOutcome.Deny,
+      new Score(0.91),
+      "missing authority approval",
+      [boot.id],
+    );
+
+    expect(canonicalContentJson(content)).toBe(
+      `{"Action":"repo.merge.main","Actor":"actor_alice","Confidence":0.91,"Evidence":["${boot.id.value}"],"Outcome":"Deny","Rationale":"missing authority approval"}`,
+    );
+
+    const decision = store.append(createEvent(
+      new EventType("decision.recorded"),
+      actor,
+      content,
+      [boot.id],
+      new ConversationId("conv_decision"),
+      boot.hash,
+      signer,
+    ));
+
+    expect(decision.hash.value).toHaveLength(64);
+    expect(store.byType(new EventType("decision.recorded"), 10)[0].id.value).toBe(decision.id.value);
+    expect(store.ancestors(decision.id, 10).some((event) => event.id.value === boot.id.value)).toBe(true);
+  });
+});
 
 describe("DecisionOutcome", () => {
   it("has all four values", () => {

@@ -8,6 +8,7 @@ from eventgraph.decision import (
     Branch,
     Condition,
     DecisionOutcome,
+    DecisionRecordContent,
     DecisionTree,
     EvaluateInput,
     EvolutionConfig,
@@ -29,7 +30,14 @@ from eventgraph.decision import (
     extract_field,
     parse_outcome,
 )
-from eventgraph.types import ActorID, Option, Score
+from eventgraph.event import (
+    NoopSigner,
+    canonical_content_json,
+    create_bootstrap,
+    create_event,
+)
+from eventgraph.store import InMemoryStore
+from eventgraph.types import ActorID, ConversationID, EventType, Option, Score
 
 
 def _make_input(
@@ -43,6 +51,43 @@ def _make_input(
         context=context or {},
         history=[],
     )
+
+
+def test_decision_record_content_serializes_hashes_stores_queries_and_preserves_causality() -> None:
+    store = InMemoryStore()
+    signer = NoopSigner()
+    actor = ActorID("actor_alice")
+    boot = store.append(create_bootstrap(source=actor, signer=signer))
+    content = DecisionRecordContent(
+        actor=actor,
+        action="repo.merge.main",
+        outcome=DecisionOutcome.DENY,
+        confidence=Score(0.91),
+        rationale="missing authority approval",
+        evidence=[boot.id],
+    ).to_event_content()
+
+    assert canonical_content_json(content) == (
+        f'{{"Action":"repo.merge.main","Actor":"actor_alice","Confidence":0.91,'
+        f'"Evidence":["{boot.id.value}"],"Outcome":"Deny",'
+        f'"Rationale":"missing authority approval"}}'
+    )
+
+    decision = store.append(
+        create_event(
+            event_type=EventType("decision.recorded"),
+            source=actor,
+            content=content,
+            causes=[boot.id],
+            conversation_id=ConversationID("conv_decision"),
+            prev_hash=boot.hash,
+            signer=signer,
+        )
+    )
+
+    assert len(decision.hash.value) == 64
+    assert store.by_type(EventType("decision.recorded"), 10)[0].id == decision.id
+    assert any(event.id == boot.id for event in store.ancestors(decision.id, 10))
 
 
 # ── Mechanical leaf ──────────────────────────────────────────────────────

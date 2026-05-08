@@ -111,6 +111,26 @@ public sealed record Condition
 /// <summary>Records a step taken in a decision tree traversal.</summary>
 public sealed record PathStep(Condition Condition, MatchValue Branch);
 
+/// <summary>Typed content for a durable decision.recorded kernel event.</summary>
+public sealed record DecisionRecordContent(
+    ActorId Actor,
+    string Action,
+    DecisionOutcome Outcome,
+    Score Confidence,
+    string Rationale,
+    IReadOnlyList<EventId> Evidence)
+{
+    public Dictionary<string, object?> ToEventContent() => new()
+    {
+        ["Actor"] = Actor.Value,
+        ["Action"] = Action,
+        ["Outcome"] = Outcome.ToString(),
+        ["Confidence"] = Confidence.Value,
+        ["Rationale"] = Rationale,
+        ["Evidence"] = Evidence.Select(eventId => eventId.Value).Cast<object?>().ToList(),
+    };
+}
+
 // ── Decision Tree Nodes ──────────────────────────────────────────────────
 
 /// <summary>Marker interface for decision tree nodes.</summary>

@@ -1,4 +1,4 @@
-import { Score, Option, ActorId } from "./types.js";
+import { Score, Option, ActorId, EventId } from "./types.js";
 import { Event } from "./event.js";
 import { IntelligenceUnavailableError } from "./errors.js";
 
@@ -53,6 +53,35 @@ export interface Condition {
 export interface PathStep {
   condition: Condition;
   branch: MatchValue;
+}
+
+// ── Decision Records ───────────────────────────────────────────────────
+
+export interface DecisionRecordContent {
+  Actor: string;
+  Action: string;
+  Outcome: DecisionOutcome;
+  Confidence: number;
+  Rationale: string;
+  Evidence: string[];
+}
+
+export function decisionRecordContent(
+  actor: ActorId,
+  action: string,
+  outcome: DecisionOutcome,
+  confidence: Score,
+  rationale: string,
+  evidence: EventId[],
+): DecisionRecordContent {
+  return {
+    Actor: actor.value,
+    Action: action,
+    Outcome: outcome,
+    Confidence: confidence.value,
+    Rationale: rationale,
+    Evidence: evidence.map((eventId) => eventId.value),
+  };
 }
 
 // ── Intelligence ─────────────────────────────────────────────────────────

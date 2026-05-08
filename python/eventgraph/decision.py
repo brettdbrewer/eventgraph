@@ -15,7 +15,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from .errors import EventGraphError
 from .event import Event
-from .types import ActorID, Option, Score
+from .types import ActorID, EventID, Option, Score
 
 
 # ── Errors ───────────────────────────────────────────────────────────────
@@ -119,6 +119,44 @@ class PathStep:
     """A step in the evaluation path through the tree."""
     condition: Condition
     branch: MatchValue
+
+
+@dataclass(frozen=True, slots=True)
+class DecisionRecordContent:
+    """Typed content for a durable decision.recorded kernel event."""
+
+    actor: ActorID
+    action: str
+    outcome: DecisionOutcome
+    confidence: Score
+    rationale: str
+    evidence: tuple[EventID, ...]
+
+    def __init__(
+        self,
+        actor: ActorID,
+        action: str,
+        outcome: DecisionOutcome,
+        confidence: Score,
+        rationale: str,
+        evidence: list[EventID],
+    ) -> None:
+        object.__setattr__(self, "actor", actor)
+        object.__setattr__(self, "action", action)
+        object.__setattr__(self, "outcome", outcome)
+        object.__setattr__(self, "confidence", confidence)
+        object.__setattr__(self, "rationale", rationale)
+        object.__setattr__(self, "evidence", tuple(evidence))
+
+    def to_event_content(self) -> dict[str, object]:
+        return {
+            "Actor": self.actor.value,
+            "Action": self.action,
+            "Outcome": self.outcome.value,
+            "Confidence": self.confidence.value,
+            "Rationale": self.rationale,
+            "Evidence": [event_id.value for event_id in self.evidence],
+        }
 
 
 # ── Decision Nodes ───────────────────────────────────────────────────────

@@ -2,8 +2,9 @@ use std::collections::BTreeMap;
 
 use eventgraph::decision::*;
 use eventgraph::errors::EventGraphError;
-use eventgraph::event::Event;
-use eventgraph::types::{ActorId, Score};
+use eventgraph::event::{canonical_content_json, create_bootstrap, create_event, Event, NoopSigner};
+use eventgraph::store::{InMemoryStore, Store};
+use eventgraph::types::{ActorId, ConversationId, EventType, Score};
 use serde_json::Value;
 
 // ── Mock intelligence ─────────────────────────────────────────────────
@@ -65,6 +66,54 @@ fn make_history(outcome: DecisionOutcome, confidence: f64, count: usize) -> Vec<
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────
+
+#[test]
+fn test_decision_record_content_serializes_hashes_stores_queries_and_preserves_causality() {
+    let mut store = InMemoryStore::new();
+    let actor = ActorId::new("actor_alice").unwrap();
+    let boot = create_bootstrap(actor.clone(), &NoopSigner, 1);
+    let boot = store.append(boot).unwrap();
+    let content = DecisionRecordContent {
+        actor: actor.clone(),
+        action: "repo.merge.main".to_string(),
+        outcome: DecisionOutcome::Deny,
+        confidence: Score::new(0.91).unwrap(),
+        rationale: "missing authority approval".to_string(),
+        evidence: vec![boot.id.clone()],
+    }
+    .to_event_content();
+
+    assert_eq!(
+        canonical_content_json(&content),
+        format!(
+            "{{\"Action\":\"repo.merge.main\",\"Actor\":\"actor_alice\",\"Confidence\":0.91,\"Evidence\":[\"{}\"],\"Outcome\":\"Deny\",\"Rationale\":\"missing authority approval\"}}",
+            boot.id.value()
+        )
+    );
+
+    let decision = create_event(
+        EventType::new("decision.recorded").unwrap(),
+        actor,
+        content,
+        vec![boot.id.clone()],
+        ConversationId::new("conv_decision").unwrap(),
+        boot.hash.clone(),
+        &NoopSigner,
+        1,
+    );
+    let decision = store.append(decision).unwrap();
+
+    assert_eq!(decision.hash.value().len(), 64);
+    assert_eq!(
+        store.by_type(&EventType::new("decision.recorded").unwrap(), 10)[0].id,
+        decision.id
+    );
+    assert!(store
+        .ancestors(&decision.id, 10)
+        .unwrap()
+        .iter()
+        .any(|event| event.id == boot.id));
+}
 
 #[test]
 fn test_mechanical_leaf() {

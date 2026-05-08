@@ -73,6 +73,36 @@ func makeEvent(t *testing.T, s store.Store, eventType types.EventType, causes []
 	return ev
 }
 
+func makeDecisionRecordedEvent(t *testing.T, s store.Store, causes []types.EventID) event.Event {
+	t.Helper()
+	evidence, err := types.NewNonEmpty(causes)
+	if err != nil {
+		t.Fatalf("evidence: %v", err)
+	}
+	registry := event.DefaultRegistry()
+	factory := event.NewEventFactory(registry)
+	ev, err := factory.Create(
+		event.EventTypeDecisionRecorded,
+		types.MustActorID("actor_00000000000000000000000000000001"),
+		event.DecisionRecordedContent{
+			Actor:      types.MustActorID("actor_00000000000000000000000000000001"),
+			Action:     "repo.merge.main",
+			Outcome:    event.DecisionOutcomeDeny,
+			Confidence: types.MustScore(0.91),
+			Rationale:  "missing authority approval",
+			Evidence:   evidence,
+		},
+		causes,
+		types.MustConversationID("conv_00000000000000000000000000000001"),
+		headFromStore{s},
+		testSigner{},
+	)
+	if err != nil {
+		t.Fatalf("create decision.recorded event failed: %v", err)
+	}
+	return ev
+}
+
 // --- Store error tests ---
 
 func TestStoreErrorTypes(t *testing.T) {
@@ -110,25 +140,105 @@ func TestStoreErrorsAsDispatch(t *testing.T) {
 	}
 }
 
+func TestDecisionRecordedEventIsSerializedStoredQueriedAndCausallyLinked(t *testing.T) {
+	s := store.NewInMemoryStore()
+	bootstrap := makeBootstrapEvent(t)
+	if _, err := s.Append(bootstrap); err != nil {
+		t.Fatalf("append bootstrap: %v", err)
+	}
+
+	decision := makeDecisionRecordedEvent(t, s, []types.EventID{bootstrap.ID()})
+	stored, err := s.Append(decision)
+	if err != nil {
+		t.Fatalf("append decision.recorded: %v", err)
+	}
+
+	if stored.Type() != event.EventTypeDecisionRecorded {
+		t.Fatalf("stored type = %s, want decision.recorded", stored.Type().Value())
+	}
+	content, ok := stored.Content().(event.DecisionRecordedContent)
+	if !ok {
+		t.Fatalf("content type = %T, want DecisionRecordedContent", stored.Content())
+	}
+	if content.Outcome != event.DecisionOutcomeDeny {
+		t.Errorf("Outcome = %q, want Deny", content.Outcome)
+	}
+	if content.Rationale != "missing authority approval" {
+		t.Errorf("Rationale = %q", content.Rationale)
+	}
+
+	canonical := event.CanonicalForm(stored)
+	if canonical == "" {
+		t.Fatal("canonical form must not be empty")
+	}
+	hash, err := event.ComputeHash(canonical)
+	if err != nil {
+		t.Fatalf("ComputeHash: %v", err)
+	}
+	if hash != stored.Hash() {
+		t.Errorf("computed hash %s does not match stored hash %s", hash.Value(), stored.Hash().Value())
+	}
+
+	byType, err := s.ByType(event.EventTypeDecisionRecorded, 10, types.None[types.Cursor]())
+	if err != nil {
+		t.Fatalf("ByType: %v", err)
+	}
+	if len(byType.Items()) != 1 || byType.Items()[0].ID() != stored.ID() {
+		t.Fatalf("ByType returned %+v, want decision event", byType.Items())
+	}
+
+	ancestors, err := s.Ancestors(stored.ID(), 10)
+	if err != nil {
+		t.Fatalf("Ancestors: %v", err)
+	}
+	if len(ancestors) != 1 || ancestors[0].ID() != bootstrap.ID() {
+		t.Fatalf("Ancestors = %+v, want bootstrap", ancestors)
+	}
+}
+
 // --- Store error visitor test ---
 
 type storeErrorCollector struct{ visited string }
 
-func (c *storeErrorCollector) VisitEventNotFound(*store.EventNotFoundError)                   { c.visited = "EventNotFound" }
-func (c *storeErrorCollector) VisitActorNotFound(*store.ActorNotFoundError)                   { c.visited = "ActorNotFound" }
-func (c *storeErrorCollector) VisitActorKeyNotFound(*store.ActorKeyNotFoundError)             { c.visited = "ActorKeyNotFound" }
-func (c *storeErrorCollector) VisitEdgeNotFound(*store.EdgeNotFoundError)                     { c.visited = "EdgeNotFound" }
-func (c *storeErrorCollector) VisitEdgeIndex(*store.EdgeIndexError)                           { c.visited = "EdgeIndex" }
-func (c *storeErrorCollector) VisitDuplicateEvent(*store.DuplicateEventError)                 { c.visited = "DuplicateEvent" }
-func (c *storeErrorCollector) VisitCausalLinkMissing(*store.CausalLinkMissingError)           { c.visited = "CausalLinkMissing" }
-func (c *storeErrorCollector) VisitChainIntegrityViolation(*store.ChainIntegrityViolationError) { c.visited = "ChainIntegrityViolation" }
-func (c *storeErrorCollector) VisitHashMismatch(*store.HashMismatchError)                     { c.visited = "HashMismatch" }
-func (c *storeErrorCollector) VisitSignatureInvalid(*store.SignatureInvalidError)              { c.visited = "SignatureInvalid" }
-func (c *storeErrorCollector) VisitActorSuspended(*store.ActorSuspendedError)                 { c.visited = "ActorSuspended" }
-func (c *storeErrorCollector) VisitActorMemorial(*store.ActorMemorialError)                   { c.visited = "ActorMemorial" }
-func (c *storeErrorCollector) VisitRateLimitExceeded(*store.RateLimitExceededError)            { c.visited = "RateLimitExceeded" }
-func (c *storeErrorCollector) VisitStoreUnavailable(*store.StoreUnavailableError)              { c.visited = "StoreUnavailable" }
-func (c *storeErrorCollector) VisitInvalidCursor(*store.InvalidCursorError)                    { c.visited = "InvalidCursor" }
+func (c *storeErrorCollector) VisitEventNotFound(*store.EventNotFoundError) {
+	c.visited = "EventNotFound"
+}
+func (c *storeErrorCollector) VisitActorNotFound(*store.ActorNotFoundError) {
+	c.visited = "ActorNotFound"
+}
+func (c *storeErrorCollector) VisitActorKeyNotFound(*store.ActorKeyNotFoundError) {
+	c.visited = "ActorKeyNotFound"
+}
+func (c *storeErrorCollector) VisitEdgeNotFound(*store.EdgeNotFoundError) { c.visited = "EdgeNotFound" }
+func (c *storeErrorCollector) VisitEdgeIndex(*store.EdgeIndexError)       { c.visited = "EdgeIndex" }
+func (c *storeErrorCollector) VisitDuplicateEvent(*store.DuplicateEventError) {
+	c.visited = "DuplicateEvent"
+}
+func (c *storeErrorCollector) VisitCausalLinkMissing(*store.CausalLinkMissingError) {
+	c.visited = "CausalLinkMissing"
+}
+func (c *storeErrorCollector) VisitChainIntegrityViolation(*store.ChainIntegrityViolationError) {
+	c.visited = "ChainIntegrityViolation"
+}
+func (c *storeErrorCollector) VisitHashMismatch(*store.HashMismatchError) { c.visited = "HashMismatch" }
+func (c *storeErrorCollector) VisitSignatureInvalid(*store.SignatureInvalidError) {
+	c.visited = "SignatureInvalid"
+}
+func (c *storeErrorCollector) VisitActorSuspended(*store.ActorSuspendedError) {
+	c.visited = "ActorSuspended"
+}
+func (c *storeErrorCollector) VisitActorMemorial(*store.ActorMemorialError) {
+	c.visited = "ActorMemorial"
+}
+func (c *storeErrorCollector) VisitRateLimitExceeded(*store.RateLimitExceededError) {
+	c.visited = "RateLimitExceeded"
+}
+func (c *storeErrorCollector) VisitStoreUnavailable(*store.StoreUnavailableError) {
+	c.visited = "StoreUnavailable"
+}
+func (c *storeErrorCollector) VisitInvalidCursor(*store.InvalidCursorError) {
+	c.visited = "InvalidCursor"
+}
 
 func TestStoreErrorVisitor(t *testing.T) {
 	eventID := types.MustEventID("019462a0-0000-7000-8000-000000000001")

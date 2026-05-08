@@ -459,6 +459,7 @@ func TestEventContentTypeName(t *testing.T) {
 		{BootstrapContent{}, "system.bootstrapped"},
 		{ClockTickContent{}, "clock.tick"},
 		{HealthReportContent{}, "health.report"},
+		{DecisionRecordedContent{}, "decision.recorded"},
 		{BranchProposedContent{}, "decision.branch.proposed"},
 		{BranchInsertedContent{}, "decision.branch.inserted"},
 		{CostReportContent{}, "decision.cost.report"},
@@ -525,6 +526,9 @@ func (c *contentVisitorCollector) VisitChainBroken(ChainBrokenContent)   { c.vis
 func (c *contentVisitorCollector) VisitBootstrap(BootstrapContent)       { c.visited = "system.bootstrapped" }
 func (c *contentVisitorCollector) VisitClockTick(ClockTickContent)       { c.visited = "clock.tick" }
 func (c *contentVisitorCollector) VisitHealthReport(HealthReportContent) { c.visited = "health.report" }
+func (c *contentVisitorCollector) VisitDecisionRecorded(DecisionRecordedContent) {
+	c.visited = "decision.recorded"
+}
 func (c *contentVisitorCollector) VisitBranchProposed(BranchProposedContent) {
 	c.visited = "decision.branch.proposed"
 }
@@ -596,7 +600,7 @@ func TestEventContentVisitorDispatch(t *testing.T) {
 		ActorRegisteredContent{}, ActorSuspendedContent{}, ActorMemorialContent{},
 		EdgeCreatedContent{}, EdgeSupersededContent{},
 		ViolationDetectedContent{}, ChainVerifiedContent{}, ChainBrokenContent{},
-		BootstrapContent{}, ClockTickContent{}, HealthReportContent{},
+		BootstrapContent{}, ClockTickContent{}, HealthReportContent{}, DecisionRecordedContent{},
 		BranchProposedContent{}, BranchInsertedContent{}, CostReportContent{},
 		GrammarEmitContent{}, GrammarRespondContent{}, GrammarDeriveContent{},
 		GrammarExtendContent{}, GrammarRetractContent{}, GrammarAnnotateContent{},
@@ -989,11 +993,14 @@ func TestHashChainLinking(t *testing.T) {
 func TestDefaultRegistry(t *testing.T) {
 	r := DefaultRegistry()
 	allTypes := r.AllTypes()
-	if len(allTypes) != 144 {
-		t.Errorf("expected 144 registered types, got %d", len(allTypes))
+	if len(allTypes) != 145 {
+		t.Errorf("expected 145 registered types, got %d", len(allTypes))
 	}
 	if !r.IsRegistered(EventTypeTrustUpdated) {
 		t.Error("trust.updated should be registered")
+	}
+	if !r.IsRegistered(EventTypeDecisionRecorded) {
+		t.Error("decision.recorded should be registered")
 	}
 	if r.IsRegistered(types.MustEventType("bogus.type99")) {
 		t.Error("bogus.type should not be registered")
