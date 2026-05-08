@@ -41,6 +41,73 @@ func TestAuthorityLevelIsValid(t *testing.T) {
 	}
 }
 
+func TestProtectedActionsUseDarkFactoryVocabulary(t *testing.T) {
+	expected := []string{
+		"production.deploy",
+		"repo.create",
+		"repo.delete",
+		"repo.push.default_branch",
+		"repo.merge.main",
+		"repo.mutate.cross_repo",
+		"self_modification.activate",
+		"secret.access",
+		"policy.change",
+	}
+
+	actions := ProtectedActions()
+	if len(actions) != len(expected) {
+		t.Fatalf("ProtectedActions length = %d, want %d", len(actions), len(expected))
+	}
+	for i, action := range actions {
+		if string(action) != expected[i] {
+			t.Errorf("ProtectedActions[%d] = %q, want %q", i, action, expected[i])
+		}
+		if !IsProtectedAction(string(action)) {
+			t.Errorf("expected %q to be recognized as protected", action)
+		}
+	}
+
+	if IsProtectedAction("deploy.production") {
+		t.Error("deploy.production must not alias production.deploy")
+	}
+}
+
+func TestAuthorityRequestContentUsesProtectedActionAndCausalReferences(t *testing.T) {
+	cause := types.MustEventID("019462a0-0000-7000-8000-000000000001")
+	causes, err := types.NewNonEmpty([]types.EventID{cause})
+	if err != nil {
+		t.Fatalf("NewNonEmpty returned error: %v", err)
+	}
+
+	content := AuthorityRequestContent{
+		Action:        string(ProtectedActionProductionDeploy),
+		Actor:         types.MustActorID("actor_alice"),
+		Level:         AuthorityLevelRequired,
+		Justification: "release requires operator approval",
+		Causes:        causes,
+	}
+
+	if content.EventTypeName() != "authority.requested" {
+		t.Errorf("EventTypeName = %q, want authority.requested", content.EventTypeName())
+	}
+	if content.Action != "production.deploy" {
+		t.Errorf("Action = %q, want production.deploy", content.Action)
+	}
+	if content.Actor.Value() != "actor_alice" {
+		t.Errorf("Actor = %q, want actor_alice", content.Actor.Value())
+	}
+	if content.Level != AuthorityLevelRequired {
+		t.Errorf("Level = %q, want Required", content.Level)
+	}
+	if content.Justification != "release requires operator approval" {
+		t.Errorf("Justification = %q", content.Justification)
+	}
+	allCauses := content.Causes.All()
+	if len(allCauses) != 1 || allCauses[0] != cause {
+		t.Errorf("Causes = %+v, want [%s]", content.Causes, cause)
+	}
+}
+
 func TestDecisionOutcomeIsValid(t *testing.T) {
 	valid := []DecisionOutcome{DecisionOutcomePermit, DecisionOutcomeDeny, DecisionOutcomeDefer, DecisionOutcomeEscalate}
 	for _, do := range valid {

@@ -1,5 +1,46 @@
 namespace EventGraph;
 
+// ── ProtectedAction ───────────────────────────────────────────────────
+
+/// <summary>Dark Factory authority-gated protected action names from DF-SOP-0001.</summary>
+public static class ProtectedAction
+{
+    public const string ProductionDeploy = "production.deploy";
+    public const string RepoCreate = "repo.create";
+    public const string RepoDelete = "repo.delete";
+    public const string RepoPushDefaultBranch = "repo.push.default_branch";
+    public const string RepoMergeMain = "repo.merge.main";
+    public const string RepoMutateCrossRepo = "repo.mutate.cross_repo";
+    public const string SelfModificationActivate = "self_modification.activate";
+    public const string SecretAccess = "secret.access";
+    public const string PolicyChange = "policy.change";
+
+    public static IReadOnlyList<string> All { get; } = new[]
+    {
+        ProductionDeploy,
+        RepoCreate,
+        RepoDelete,
+        RepoPushDefaultBranch,
+        RepoMergeMain,
+        RepoMutateCrossRepo,
+        SelfModificationActivate,
+        SecretAccess,
+        PolicyChange,
+    };
+
+    public static bool IsProtected(string action) => All.Contains(action);
+}
+
+// ── AuthorityRequestContent ───────────────────────────────────────────
+
+/// <summary>Typed content for the authority.requested kernel event.</summary>
+public sealed record AuthorityRequestContent(
+    string Action,
+    ActorId Actor,
+    AuthorityLevel Level,
+    string Justification,
+    IReadOnlyList<EventId> Causes);
+
 // ── AuthorityLink ──────────────────────────────────────────────────────
 
 /// <summary>A single link in an authority chain — actor, level, and weight.</summary>

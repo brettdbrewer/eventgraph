@@ -10,7 +10,46 @@ use crate::actor::Actor;
 use crate::decision::AuthorityLevel;
 use crate::errors::Result;
 use crate::trust::TrustModel;
-use crate::types::{ActorId, DomainScope, Score};
+use crate::types::{ActorId, DomainScope, EventId, Score};
+
+// ── Protected Actions ─────────────────────────────────────────────────
+
+pub const PROTECTED_ACTION_PRODUCTION_DEPLOY: &str = "production.deploy";
+pub const PROTECTED_ACTION_REPO_CREATE: &str = "repo.create";
+pub const PROTECTED_ACTION_REPO_DELETE: &str = "repo.delete";
+pub const PROTECTED_ACTION_REPO_PUSH_DEFAULT_BRANCH: &str = "repo.push.default_branch";
+pub const PROTECTED_ACTION_REPO_MERGE_MAIN: &str = "repo.merge.main";
+pub const PROTECTED_ACTION_REPO_MUTATE_CROSS_REPO: &str = "repo.mutate.cross_repo";
+pub const PROTECTED_ACTION_SELF_MODIFICATION_ACTIVATE: &str = "self_modification.activate";
+pub const PROTECTED_ACTION_SECRET_ACCESS: &str = "secret.access";
+pub const PROTECTED_ACTION_POLICY_CHANGE: &str = "policy.change";
+
+pub const PROTECTED_ACTIONS: [&str; 9] = [
+    PROTECTED_ACTION_PRODUCTION_DEPLOY,
+    PROTECTED_ACTION_REPO_CREATE,
+    PROTECTED_ACTION_REPO_DELETE,
+    PROTECTED_ACTION_REPO_PUSH_DEFAULT_BRANCH,
+    PROTECTED_ACTION_REPO_MERGE_MAIN,
+    PROTECTED_ACTION_REPO_MUTATE_CROSS_REPO,
+    PROTECTED_ACTION_SELF_MODIFICATION_ACTIVATE,
+    PROTECTED_ACTION_SECRET_ACCESS,
+    PROTECTED_ACTION_POLICY_CHANGE,
+];
+
+pub fn is_protected_action(action: &str) -> bool {
+    PROTECTED_ACTIONS.contains(&action)
+}
+
+// ── AuthorityRequestContent ───────────────────────────────────────────
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthorityRequestContent {
+    pub action: String,
+    pub actor: ActorId,
+    pub level: AuthorityLevel,
+    pub justification: String,
+    pub causes: Vec<EventId>,
+}
 
 // ── AuthorityLink ────────────────────────────────────────────────────
 
@@ -55,13 +94,7 @@ pub trait AuthorityChain {
 
     /// Grants authority from one actor to another in a scope with a weight.
     /// Returns Ok(()) in the flat model (no-op stub).
-    fn grant(
-        &self,
-        from: &Actor,
-        to: &Actor,
-        scope: &DomainScope,
-        weight: Score,
-    ) -> Result<()>;
+    fn grant(&self, from: &Actor, to: &Actor, scope: &DomainScope, weight: Score) -> Result<()>;
 
     /// Revokes authority from one actor to another in a scope.
     /// Returns Ok(()) in the flat model (no-op stub).

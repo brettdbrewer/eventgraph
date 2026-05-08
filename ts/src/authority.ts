@@ -1,10 +1,69 @@
-import { ActorId, DomainScope, Score } from "./types.js";
+import { ActorId, DomainScope, EventId, Score } from "./types.js";
 import { Actor } from "./actor.js";
 import { AuthorityLevel } from "./decision.js";
 import { TrustModel } from "./trust.js";
 
 // Re-export AuthorityLevel for convenience
 export { AuthorityLevel } from "./decision.js";
+
+// ── Protected Actions ────────────────────────────────────────────────────
+
+/** Dark Factory authority-gated protected action names from DF-SOP-0001. */
+export const ProtectedAction = {
+  ProductionDeploy: "production.deploy",
+  RepoCreate: "repo.create",
+  RepoDelete: "repo.delete",
+  RepoPushDefaultBranch: "repo.push.default_branch",
+  RepoMergeMain: "repo.merge.main",
+  RepoMutateCrossRepo: "repo.mutate.cross_repo",
+  SelfModificationActivate: "self_modification.activate",
+  SecretAccess: "secret.access",
+  PolicyChange: "policy.change",
+} as const;
+export type ProtectedAction = (typeof ProtectedAction)[keyof typeof ProtectedAction];
+
+export const PROTECTED_ACTIONS: readonly ProtectedAction[] = Object.freeze([
+  ProtectedAction.ProductionDeploy,
+  ProtectedAction.RepoCreate,
+  ProtectedAction.RepoDelete,
+  ProtectedAction.RepoPushDefaultBranch,
+  ProtectedAction.RepoMergeMain,
+  ProtectedAction.RepoMutateCrossRepo,
+  ProtectedAction.SelfModificationActivate,
+  ProtectedAction.SecretAccess,
+  ProtectedAction.PolicyChange,
+]);
+
+export function isProtectedAction(action: string): action is ProtectedAction {
+  return (PROTECTED_ACTIONS as readonly string[]).includes(action);
+}
+
+// ── AuthorityRequestContent ──────────────────────────────────────────────
+
+/** Typed content for the authority.requested kernel event. */
+export interface AuthorityRequestContent {
+  Action: string;
+  Actor: string;
+  Level: AuthorityLevel;
+  Justification: string;
+  Causes: string[];
+}
+
+export function authorityRequestContent(
+  action: ProtectedAction,
+  actor: ActorId,
+  level: AuthorityLevel,
+  justification: string,
+  causes: EventId[],
+): AuthorityRequestContent {
+  return {
+    Action: action,
+    Actor: actor.value,
+    Level: level,
+    Justification: justification,
+    Causes: causes.map((cause) => cause.value),
+  };
+}
 
 // ── AuthorityLink ─────────────────────────────────────────────────────────
 

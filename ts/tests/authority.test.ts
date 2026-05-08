@@ -1,8 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
+  authorityRequestContent,
   DefaultAuthorityChain,
+  isProtectedAction,
   matchesAction,
   AuthorityLevel,
+  ProtectedAction,
+  PROTECTED_ACTIONS,
 } from "../src/authority.js";
 import { DefaultTrustModel } from "../src/trust.js";
 import { Actor, ActorType, ActorStatus, InMemoryActorStore } from "../src/actor.js";
@@ -173,6 +177,46 @@ describe("DefaultAuthorityChain", () => {
     const actor = testActor("Alice", 1);
     const result = chain.evaluate(actor, "test");
     expect(result.weight.value).toBe(1.0);
+  });
+});
+
+describe("ProtectedAction vocabulary", () => {
+  it("matches DF-SOP-0001 canonical action names", () => {
+    expect(PROTECTED_ACTIONS).toEqual([
+      "production.deploy",
+      "repo.create",
+      "repo.delete",
+      "repo.push.default_branch",
+      "repo.merge.main",
+      "repo.mutate.cross_repo",
+      "self_modification.activate",
+      "secret.access",
+      "policy.change",
+    ]);
+  });
+
+  it("does not accept incompatible aliases", () => {
+    expect(isProtectedAction(ProtectedAction.ProductionDeploy)).toBe(true);
+    expect(isProtectedAction("deploy.production")).toBe(false);
+  });
+
+  it("builds authority.requested content with canonical action and causal references", () => {
+    const cause = newEventId();
+    const content = authorityRequestContent(
+      ProtectedAction.ProductionDeploy,
+      new ActorId("actor_alice"),
+      AuthorityLevel.Required,
+      "release requires operator approval",
+      [cause],
+    );
+
+    expect(content).toEqual({
+      Action: "production.deploy",
+      Actor: "actor_alice",
+      Level: "Required",
+      Justification: "release requires operator approval",
+      Causes: [cause.value],
+    });
   });
 });
 

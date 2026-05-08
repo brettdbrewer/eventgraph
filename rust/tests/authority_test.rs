@@ -2,11 +2,12 @@ use std::collections::BTreeMap;
 
 use eventgraph::actor::{Actor, ActorStatus, ActorType};
 use eventgraph::authority::{
-    matches_action, AuthorityChain, AuthorityPolicy, DefaultAuthorityChain,
+    AuthorityChain, AuthorityPolicy, AuthorityRequestContent, DefaultAuthorityChain,
+    PROTECTED_ACTION_PRODUCTION_DEPLOY, PROTECTED_ACTIONS, is_protected_action, matches_action,
 };
 use eventgraph::decision::AuthorityLevel;
 use eventgraph::trust::{DefaultTrustModel, TrustConfig};
-use eventgraph::types::{ActorId, DomainScope, PublicKey, Score};
+use eventgraph::types::{ActorId, DomainScope, EventId, PublicKey, Score};
 
 fn test_actor(name: &str, key_byte: u8) -> Actor {
     let mut key = [0u8; 32];
@@ -162,6 +163,50 @@ fn test_authority_result_weight() {
     let actor = test_actor("alice", 1);
     let result = chain.evaluate(&actor, "test").unwrap();
     assert!((result.weight.value() - 1.0).abs() < f64::EPSILON);
+}
+
+// ── Protected action vocabulary ───────────────────────────────────────
+
+#[test]
+fn test_protected_actions_match_dark_factory_vocabulary() {
+    assert_eq!(
+        PROTECTED_ACTIONS,
+        [
+            "production.deploy",
+            "repo.create",
+            "repo.delete",
+            "repo.push.default_branch",
+            "repo.merge.main",
+            "repo.mutate.cross_repo",
+            "self_modification.activate",
+            "secret.access",
+            "policy.change",
+        ]
+    );
+}
+
+#[test]
+fn test_protected_actions_do_not_accept_incompatible_aliases() {
+    assert!(is_protected_action(PROTECTED_ACTION_PRODUCTION_DEPLOY));
+    assert!(!is_protected_action("deploy.production"));
+}
+
+#[test]
+fn test_authority_request_content_carries_canonical_action_and_causes() {
+    let cause = EventId::new("019462a0-0000-7000-8000-000000000001").unwrap();
+    let content = AuthorityRequestContent {
+        action: PROTECTED_ACTION_PRODUCTION_DEPLOY.to_string(),
+        actor: ActorId::new("actor_alice").unwrap(),
+        level: AuthorityLevel::Required,
+        justification: "release requires operator approval".to_string(),
+        causes: vec![cause.clone()],
+    };
+
+    assert_eq!(content.action, "production.deploy");
+    assert_eq!(content.actor.value(), "actor_alice");
+    assert_eq!(content.level, AuthorityLevel::Required);
+    assert_eq!(content.justification, "release requires operator approval");
+    assert_eq!(content.causes, vec![cause]);
 }
 
 // ── matches_action unit tests ────────────────────────────────────────

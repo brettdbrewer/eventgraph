@@ -11,10 +11,75 @@ from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
 from .decision import AuthorityLevel
-from .types import ActorID, DomainScope, Option, Score
+from .types import ActorID, DomainScope, EventID, Option, Score
+
+
+# ── Protected Actions ────────────────────────────────────────────────────
+
+PROTECTED_ACTION_PRODUCTION_DEPLOY = "production.deploy"
+PROTECTED_ACTION_REPO_CREATE = "repo.create"
+PROTECTED_ACTION_REPO_DELETE = "repo.delete"
+PROTECTED_ACTION_REPO_PUSH_DEFAULT_BRANCH = "repo.push.default_branch"
+PROTECTED_ACTION_REPO_MERGE_MAIN = "repo.merge.main"
+PROTECTED_ACTION_REPO_MUTATE_CROSS_REPO = "repo.mutate.cross_repo"
+PROTECTED_ACTION_SELF_MODIFICATION_ACTIVATE = "self_modification.activate"
+PROTECTED_ACTION_SECRET_ACCESS = "secret.access"
+PROTECTED_ACTION_POLICY_CHANGE = "policy.change"
+
+PROTECTED_ACTIONS: tuple[str, ...] = (
+    PROTECTED_ACTION_PRODUCTION_DEPLOY,
+    PROTECTED_ACTION_REPO_CREATE,
+    PROTECTED_ACTION_REPO_DELETE,
+    PROTECTED_ACTION_REPO_PUSH_DEFAULT_BRANCH,
+    PROTECTED_ACTION_REPO_MERGE_MAIN,
+    PROTECTED_ACTION_REPO_MUTATE_CROSS_REPO,
+    PROTECTED_ACTION_SELF_MODIFICATION_ACTIVATE,
+    PROTECTED_ACTION_SECRET_ACCESS,
+    PROTECTED_ACTION_POLICY_CHANGE,
+)
+
+
+def is_protected_action(action: str) -> bool:
+    """Return True if *action* is a shared Dark Factory protected action."""
+    return action in PROTECTED_ACTIONS
 
 
 # ── Value Types ──────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class AuthorityRequestContent:
+    """Typed content for the authority.requested kernel event."""
+
+    action: str
+    actor: ActorID
+    level: AuthorityLevel
+    justification: str
+    causes: tuple[EventID, ...]
+
+    def __init__(
+        self,
+        action: str,
+        actor: ActorID,
+        level: AuthorityLevel,
+        justification: str,
+        causes: list[EventID],
+    ) -> None:
+        object.__setattr__(self, "action", action)
+        object.__setattr__(self, "actor", actor)
+        object.__setattr__(self, "level", level)
+        object.__setattr__(self, "justification", justification)
+        object.__setattr__(self, "causes", tuple(causes))
+
+    def to_event_content(self) -> dict[str, object]:
+        """Return canonical content keys for an authority.requested event."""
+        return {
+            "Action": self.action,
+            "Actor": self.actor.value,
+            "Level": self.level.value,
+            "Justification": self.justification,
+            "Causes": [cause.value for cause in self.causes],
+        }
 
 
 @dataclass(frozen=True, slots=True)

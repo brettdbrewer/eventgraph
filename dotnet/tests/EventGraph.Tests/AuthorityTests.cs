@@ -127,6 +127,50 @@ public class AuthorityTests
         Assert.Equal(1.0, result.Weight.Value);
     }
 
+    // ── Protected action vocabulary ─────────────────────────────────────
+
+    [Fact]
+    public void ProtectedActionsMatchDarkFactoryVocabulary()
+    {
+        Assert.Equal(new[]
+        {
+            "production.deploy",
+            "repo.create",
+            "repo.delete",
+            "repo.push.default_branch",
+            "repo.merge.main",
+            "repo.mutate.cross_repo",
+            "self_modification.activate",
+            "secret.access",
+            "policy.change",
+        }, ProtectedAction.All);
+    }
+
+    [Fact]
+    public void ProtectedActionsDoNotAcceptIncompatibleAliases()
+    {
+        Assert.True(ProtectedAction.IsProtected(ProtectedAction.ProductionDeploy));
+        Assert.False(ProtectedAction.IsProtected("deploy.production"));
+    }
+
+    [Fact]
+    public void AuthorityRequestContentCarriesCanonicalActionAndCauses()
+    {
+        var cause = new EventId("019462a0-0000-7000-8000-000000000001");
+        var content = new AuthorityRequestContent(
+            ProtectedAction.ProductionDeploy,
+            TestActorId(),
+            AuthorityLevel.Required,
+            "release requires operator approval",
+            new[] { cause });
+
+        Assert.Equal("production.deploy", content.Action);
+        Assert.Equal(TestActorId(), content.Actor);
+        Assert.Equal(AuthorityLevel.Required, content.Level);
+        Assert.Equal("release requires operator approval", content.Justification);
+        Assert.Equal(new[] { cause }, content.Causes);
+    }
+
     // ── 10. Grant and Revoke are no-op ──────────────────────────────────
 
     [Fact]

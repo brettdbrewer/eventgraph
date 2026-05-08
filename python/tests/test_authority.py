@@ -5,8 +5,12 @@ from __future__ import annotations
 from eventgraph.authority import (
     AuthorityLink,
     AuthorityPolicy,
+    AuthorityRequestContent,
     AuthorityResult,
     DefaultAuthorityChain,
+    PROTECTED_ACTIONS,
+    PROTECTED_ACTION_PRODUCTION_DEPLOY,
+    is_protected_action,
     matches_action,
 )
 from eventgraph.decision import AuthorityLevel
@@ -186,6 +190,47 @@ def test_evaluate_weight_is_1() -> None:
     result = chain.evaluate(actor, "test")
 
     assert result.weight.value == 1.0
+
+
+# ── Protected action vocabulary ─────────────────────────────────────────
+
+
+def test_protected_actions_match_dark_factory_vocabulary() -> None:
+    assert PROTECTED_ACTIONS == (
+        "production.deploy",
+        "repo.create",
+        "repo.delete",
+        "repo.push.default_branch",
+        "repo.merge.main",
+        "repo.mutate.cross_repo",
+        "self_modification.activate",
+        "secret.access",
+        "policy.change",
+    )
+
+
+def test_protected_actions_do_not_accept_incompatible_aliases() -> None:
+    assert is_protected_action(PROTECTED_ACTION_PRODUCTION_DEPLOY) is True
+    assert is_protected_action("deploy.production") is False
+
+
+def test_authority_request_content_carries_canonical_action_and_causes() -> None:
+    cause = new_event_id()
+    content = AuthorityRequestContent(
+        action=PROTECTED_ACTION_PRODUCTION_DEPLOY,
+        actor=ActorID("actor_alice"),
+        level=AuthorityLevel.REQUIRED,
+        justification="release requires operator approval",
+        causes=[cause],
+    )
+
+    assert content.to_event_content() == {
+        "Action": "production.deploy",
+        "Actor": "actor_alice",
+        "Level": "Required",
+        "Justification": "release requires operator approval",
+        "Causes": [cause.value],
+    }
 
 
 # ── matches_action helper tests ─────────────────────────────────────────
