@@ -75,3 +75,5 @@ cd python && python3 -m pytest tests/test_dark_factory_phase4.py
 ## Boundaries
 
 This is not the full Dark Factory product generator. It does not approve external runtime integration or protected side effects. It uses EventGraph's existing hash-chained event substrate and ordinary event content to prove Phase 4 control-flow semantics before any broader Phase 4+ implementation.
+
+The Phase 5 operator review surface builds on this event stream in [Dark Factory Phase 5 Operator Review Surface](./dark-factory-phase5.md).

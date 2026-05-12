@@ -4,8 +4,10 @@ from eventgraph.dark_factory_phase4 import (
     DEFAULT_HELLO_FIXTURE,
     Phase4Recorder,
     TraceCompletenessGate,
+    run_phase5_operator_review_surface,
     run_phase4_vertical_slice,
 )
+from eventgraph import run_phase5_operator_review_surface as exported_run_phase5_operator_review_surface
 from eventgraph import run_phase4_vertical_slice as exported_run_phase4_vertical_slice
 from eventgraph.actor import InMemoryActorStore
 from eventgraph.graph import Graph
@@ -30,6 +32,62 @@ def test_phase4_entrypoint_is_exported():
     result = exported_run_phase4_vertical_slice(DEFAULT_HELLO_FIXTURE)
 
     assert result.status == "CERTIFIED"
+
+
+def test_phase5_operator_review_surface_is_exported():
+    report = exported_run_phase5_operator_review_surface(DEFAULT_HELLO_FIXTURE)
+
+    assert report.status == "CERTIFIED"
+    assert report.release_candidate_id == "rc_hello_001"
+
+
+def test_phase5_operator_review_report_exposes_release_trace():
+    report = run_phase5_operator_review_surface(DEFAULT_HELLO_FIXTURE)
+    content = report.as_content()
+
+    assert report.status == "CERTIFIED"
+    assert report.certification_id == "cert_hello_001"
+    assert report.trace_score == 1.0
+    assert report.missing_provenance == ()
+    assert content["requirement_traces"][0]["requirement_id"] == "req_hello_001"
+    assert content["requirement_traces"][0]["code_change"]["object_id"] == "chg_hello_txt"
+    assert content["actor_runtime_evidence"][0]["runtime"] == "local"
+    assert content["release_evidence"]["runtime_bom"]["object_id"] == "frv_phase4_vertical_slice"
+    assert {gate["gate_name"] for gate in content["gate_evidence"]} == {
+        "vertical_slice_dummy_test",
+        "TraceCompletenessGate",
+    }
+
+
+def test_phase5_operator_review_report_shows_failure_and_repair_timeline():
+    report = run_phase5_operator_review_surface(
+        DEFAULT_HELLO_FIXTURE,
+        artifact_content="wrong content\n",
+        enable_repair=True,
+    )
+    timeline = report.as_content()["failure_repair_timeline"]
+
+    assert report.status == "CERTIFIED"
+    assert [item["object_id"] for item in timeline] == [
+        "fail_hello_artifact",
+        "tsk_repair_hello_001",
+        "repair_hello_001",
+        "fail_hello_artifact",
+    ]
+    assert timeline[0]["status"] == "open"
+    assert timeline[-1]["status"] == "resolved"
+
+
+def test_phase5_operator_review_report_identifies_missing_provenance():
+    report = run_phase5_operator_review_surface(
+        DEFAULT_HELLO_FIXTURE,
+        include_code_change=False,
+    )
+
+    assert report.status == "REJECTED_TRACE_INCOMPLETE"
+    assert "CodeChange -> Artifact -> ActorInvocation -> Task -> Requirement -> FactoryOrder" in (
+        report.missing_provenance
+    )
 
 
 def test_phase4_repair_loop_preserves_original_failure():

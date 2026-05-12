@@ -94,6 +94,40 @@ class Phase4RunResult:
     repairs: tuple[str, ...] = field(default_factory=tuple)
 
 
+@dataclass(frozen=True, slots=True)
+class Phase5OperatorReviewReport:
+    """Operator-facing audit surface for the Phase 4 release candidate."""
+
+    factory_order_id: str
+    release_candidate_id: str
+    certification_id: str | None
+    status: Phase4Status
+    trace_score: float
+    requirement_traces: tuple[dict[str, Any], ...]
+    actor_runtime_evidence: tuple[dict[str, Any], ...]
+    failure_repair_timeline: tuple[dict[str, Any], ...]
+    gate_evidence: tuple[dict[str, Any], ...]
+    release_evidence: dict[str, Any]
+    missing_provenance: tuple[str, ...]
+    audit_report_id: str
+
+    def as_content(self) -> dict[str, Any]:
+        return {
+            "factory_order_id": self.factory_order_id,
+            "release_candidate_id": self.release_candidate_id,
+            "certification_id": self.certification_id,
+            "status": self.status,
+            "trace_score": self.trace_score,
+            "requirement_traces": list(self.requirement_traces),
+            "actor_runtime_evidence": list(self.actor_runtime_evidence),
+            "failure_repair_timeline": list(self.failure_repair_timeline),
+            "gate_evidence": list(self.gate_evidence),
+            "release_evidence": self.release_evidence,
+            "missing_provenance": list(self.missing_provenance),
+            "audit_report_id": self.audit_report_id,
+        }
+
+
 class Phase4Recorder:
     """Small event recorder that keeps object IDs linked to Event IDs."""
 
@@ -330,6 +364,179 @@ def run_phase4_vertical_slice(
     include_requirement_cause: bool = True,
     include_code_change: bool = True,
 ) -> Phase4RunResult:
+    """Run the deterministic Phase 4 vertical slice."""
+    result, _ = _execute_phase4_vertical_slice(
+        fixture,
+        artifact_content=artifact_content,
+        enable_repair=enable_repair,
+        include_requirement_link=include_requirement_link,
+        include_requirement_cause=include_requirement_cause,
+        include_code_change=include_code_change,
+    )
+    return result
+
+
+def run_phase5_operator_review_surface(
+    fixture: dict[str, Any] | None = None,
+    *,
+    artifact_content: str = "hello dark factory\n",
+    enable_repair: bool = True,
+    include_requirement_link: bool = True,
+    include_requirement_cause: bool = True,
+    include_code_change: bool = True,
+) -> Phase5OperatorReviewReport:
+    """Run the vertical slice and return an operator review report."""
+    result, recorder = _execute_phase4_vertical_slice(
+        fixture,
+        artifact_content=artifact_content,
+        enable_repair=enable_repair,
+        include_requirement_link=include_requirement_link,
+        include_requirement_cause=include_requirement_cause,
+        include_code_change=include_code_change,
+    )
+    return build_phase5_operator_review_report(recorder, result)
+
+
+def build_phase5_operator_review_report(
+    recorder: Phase4Recorder,
+    result: Phase4RunResult,
+) -> Phase5OperatorReviewReport:
+    """Build an operator-facing audit report from Dark Factory events."""
+
+    def latest(object_id: str) -> Event | None:
+        return recorder.latest_node(object_id)
+
+    def event_ref(event: Event | None) -> dict[str, Any] | None:
+        if event is None:
+            return None
+        return {
+            "event_id": event.id.value,
+            "event_type": event.type.value,
+            "object_type": event.content.get("node_type"),
+            "object_id": event.content.get("id"),
+            "hash": event.hash.value,
+            "causes": [cause.value for cause in event.causes],
+        }
+
+    def content_value(event: Event | None, key: str) -> Any:
+        if event is None:
+            return None
+        return event.content.get(key)
+
+    factory_order = latest(result.factory_order_id)
+    requirement = latest("req_hello_001")
+    criterion = latest("ac_hello_artifact_exists")
+    task = latest("tsk_hello_001")
+    actor_invocation = latest("act_dummy_worker_001")
+    artifact = latest("art_hello_txt")
+    code_change = latest("chg_hello_txt")
+    release_candidate = latest(result.release_candidate_id)
+    runtime_bom = latest("frv_phase4_vertical_slice")
+    certification = latest(result.certification_id) if result.certification_id is not None else None
+    audit_report = latest(result.audit_report_id)
+    trace_gate = latest("gate_trace_completeness")
+
+    test_runs = tuple(
+        {
+            "test_run_id": event.content["id"],
+            "status": event.content["status"],
+            "command": event.content["command"],
+            "event": event_ref(event),
+        }
+        for event in recorder.nodes("TestRun")
+    )
+    gate_evidence = tuple(
+        {
+            "gate_result_id": event.content["id"],
+            "gate_name": event.content.get("gate_name"),
+            "status": event.content.get("status"),
+            "evidence_refs": event.content.get("evidence_refs", []),
+            "waiver_ref": event.content.get("waiver_ref"),
+            "event": event_ref(event),
+        }
+        for event in recorder.nodes("GateResult")
+    )
+
+    trace_result = trace_gate.content.get("trace_completeness_result", {}) if trace_gate is not None else {}
+    missing_provenance = tuple(trace_result.get("missing_paths", ()))
+
+    requirement_traces = (
+        {
+            "requirement_id": content_value(requirement, "id"),
+            "requirement_text": content_value(requirement, "text"),
+            "factory_order": event_ref(factory_order),
+            "acceptance_criterion": event_ref(criterion),
+            "task": event_ref(task),
+            "actor_invocation": event_ref(actor_invocation),
+            "artifact": event_ref(artifact),
+            "code_change": event_ref(code_change),
+            "test_runs": list(test_runs),
+            "release_candidate": event_ref(release_candidate),
+        },
+    )
+
+    actor_runtime_evidence = (
+        {
+            "actor_invocation_id": content_value(actor_invocation, "id"),
+            "actor_id": content_value(actor_invocation, "actor_id"),
+            "runtime": content_value(actor_invocation, "runtime"),
+            "status": content_value(actor_invocation, "status"),
+            "task_id": actor_invocation.content.get("links", {}).get("task_id") if actor_invocation else None,
+            "runtime_bom": event_ref(runtime_bom),
+            "event": event_ref(actor_invocation),
+        },
+    )
+
+    failure_repair_events = sorted(
+        recorder.nodes("Failure") + recorder.nodes("RepairTask") + recorder.nodes("RepairAttempt"),
+        key=lambda event: event.timestamp_nanos,
+    )
+    failure_repair_timeline = tuple(
+        {
+            "kind": event.content["node_type"],
+            "object_id": event.content["id"],
+            "status": event.content.get("status") or event.content.get("state"),
+            "summary": event.content.get("summary"),
+            "links": event.content.get("links", {}),
+            "event": event_ref(event),
+        }
+        for event in failure_repair_events
+    )
+
+    release_evidence = {
+        "release_candidate": event_ref(release_candidate),
+        "certification": event_ref(certification),
+        "runtime_bom": event_ref(runtime_bom),
+        "audit_report": event_ref(audit_report),
+        "trace_gate": event_ref(trace_gate),
+        "gate_results": list(gate_evidence),
+    }
+
+    return Phase5OperatorReviewReport(
+        factory_order_id=result.factory_order_id,
+        release_candidate_id=result.release_candidate_id,
+        certification_id=result.certification_id,
+        status=result.status,
+        trace_score=result.trace_score,
+        requirement_traces=requirement_traces,
+        actor_runtime_evidence=actor_runtime_evidence,
+        failure_repair_timeline=failure_repair_timeline,
+        gate_evidence=gate_evidence,
+        release_evidence=release_evidence,
+        missing_provenance=missing_provenance,
+        audit_report_id=result.audit_report_id,
+    )
+
+
+def _execute_phase4_vertical_slice(
+    fixture: dict[str, Any] | None = None,
+    *,
+    artifact_content: str = "hello dark factory\n",
+    enable_repair: bool = True,
+    include_requirement_link: bool = True,
+    include_requirement_cause: bool = True,
+    include_code_change: bool = True,
+) -> tuple[Phase4RunResult, Phase4Recorder]:
     """Run the deterministic Phase 4 vertical slice.
 
     The default run certifies a hello artifact. If the initial artifact fails,
@@ -603,16 +810,19 @@ def run_phase4_vertical_slice(
         links={"release_candidate_id": "rc_hello_001"},
     )
 
-    return Phase4RunResult(
-        status=status,
-        factory_order_id="fo_hello_001",
-        release_candidate_id="rc_hello_001",
-        certification_id=certification_id,
-        audit_report_id=audit_report_id,
-        trace_score=trace.score,
-        event_count=store.count(),
-        failures=tuple(failures),
-        repairs=tuple(repairs),
+    return (
+        Phase4RunResult(
+            status=status,
+            factory_order_id="fo_hello_001",
+            release_candidate_id="rc_hello_001",
+            certification_id=certification_id,
+            audit_report_id=audit_report_id,
+            trace_score=trace.score,
+            event_count=store.count(),
+            failures=tuple(failures),
+            repairs=tuple(repairs),
+        ),
+        recorder,
     )
 
 

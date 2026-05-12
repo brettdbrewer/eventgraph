@@ -459,10 +459,13 @@ from .types import (
 )
 from .dark_factory_phase4 import (
     DEFAULT_HELLO_FIXTURE,
+    Phase5OperatorReviewReport,
     Phase4Recorder,
     Phase4RunResult,
     TraceCompletenessGate,
     TraceCompletenessResult,
+    build_phase5_operator_review_report,
+    run_phase5_operator_review_surface,
     run_phase4_vertical_slice,
 )
 
