@@ -457,5 +457,13 @@ from .types import (
     TreatyID,
     Weight,
 )
+from .dark_factory_phase4 import (
+    DEFAULT_HELLO_FIXTURE,
+    Phase4Recorder,
+    Phase4RunResult,
+    TraceCompletenessGate,
+    TraceCompletenessResult,
+    run_phase4_vertical_slice,
+)
 
 __version__ = "0.3.0"
