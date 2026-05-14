@@ -1,0 +1,127 @@
+models:
+  - id: claude-opus-4-6
+    aliases: [opus]
+    provider: claude-cli
+    auth_mode: subscription
+    tier: judgment
+    capabilities: [tools, reasoning, coding, vision, operate, large-context, structured-output]
+    context_window: 200000
+    max_output_tokens: 16384
+    pricing:
+      input_per_million: 15.00
+      output_per_million: 75.00
+      cache_read_per_million: 1.50
+      cache_write_per_million: 18.75
+
+  - id: claude-sonnet-4-6
+    aliases: [sonnet]
+    provider: claude-cli
+    auth_mode: subscription
+    tier: execution
+    capabilities: [tools, reasoning, coding, vision, operate, large-context, fast-latency, structured-output]
+    context_window: 200000
+    max_output_tokens: 16384
+    pricing:
+      input_per_million: 3.00
+      output_per_million: 15.00
+      cache_read_per_million: 0.30
+      cache_write_per_million: 3.75
+
+  - id: claude-haiku-4-5-20251001
+    aliases: [haiku]
+    provider: claude-cli
+    auth_mode: subscription
+    tier: volume
+    capabilities: [tools, reasoning, coding, vision, fast-latency, structured-output]
+    context_window: 200000
+    max_output_tokens: 8192
+    pricing:
+      input_per_million: 0.80
+      output_per_million: 4.00
+      cache_read_per_million: 0.08
+      cache_write_per_million: 1.00
+
+  # ── Anthropic API (pay-per-token, requires ANTHROPIC_API_KEY) ──
+
+  - id: api-claude-opus-4-6
+    aliases: [api-opus]
+    provider: anthropic
+    auth_mode: api-key
+    tier: judgment
+    capabilities: [tools, reasoning, coding, vision, large-context, structured-output]
+    context_window: 200000
+    max_output_tokens: 16384
+    pricing:
+      input_per_million: 15.00
+      output_per_million: 75.00
+      cache_read_per_million: 1.50
+      cache_write_per_million: 18.75
+
+  - id: api-claude-sonnet-4-6
+    aliases: [api-sonnet]
+    provider: anthropic
+    auth_mode: api-key
+    tier: execution
+    capabilities: [tools, reasoning, coding, vision, large-context, fast-latency, structured-output]
+    context_window: 200000
+    max_output_tokens: 16384
+    pricing:
+      input_per_million: 3.00
+      output_per_million: 15.00
+      cache_read_per_million: 0.30
+      cache_write_per_million: 3.75
+
+  - id: api-claude-haiku-4-5-20251001
+    aliases: [api-haiku]
+    provider: anthropic
+    auth_mode: api-key
+    tier: volume
+    capabilities: [tools, reasoning, coding, vision, fast-latency, structured-output]
+    context_window: 200000
+    max_output_tokens: 8192
+    pricing:
+      input_per_million: 0.80
+      output_per_million: 4.00
+      cache_read_per_million: 0.08
+      cache_write_per_million: 1.00
+
+tier_defaults:
+  judgment: claude-opus-4-6
+  execution: claude-sonnet-4-6
+  volume: claude-haiku-4-5-20251001
+
+role_defaults:
+  guardian: sonnet
+  sysmon: haiku
+  allocator: haiku
+  cto: opus
+  spawner: sonnet
+  reviewer: sonnet
+  strategist: sonnet
+  planner: sonnet
+  implementer: opus
+  # runner/pipeline roles
+  scout: haiku
+  architect: sonnet
+  builder: sonnet
+  tester: haiku
+  critic: sonnet
+  reflector: sonnet
+  ops: haiku
+  observer: sonnet
+  monitor: haiku
+  pm: sonnet
+  scribe: sonnet
+
+profiles:
+  balanced:
+    model: sonnet
+    provider: claude-cli
+  deep-judgment:
+    model: opus
+    provider: claude-cli
+    temperature: 0.1
+  cheap-volume:
+    model: haiku
+    provider: claude-cli
+    temperature: 0.0
