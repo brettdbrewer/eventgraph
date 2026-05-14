@@ -369,12 +369,12 @@ func (s *InMemoryStore) EvaluateCertificationEligibility(releaseCandidateID stri
 	trace, _ := s.EvaluateTraceCompletenessGate(releaseCandidateID)
 	result.TraceCompleteness = trace
 	result.EvidenceRefs = appendUniqueStrings(result.EvidenceRefs, trace.EvidenceRefs...)
-	result.Missing = append(result.Missing, trace.Missing...)
+	result.Missing = appendUniqueStrings(result.Missing, trace.Missing...)
 
 	runtimeBOMPath, _ := s.FactoryRuntimeBOMEvidencePath(releaseCandidateID)
 	result.RuntimeBOMPath = runtimeBOMPath
 	result.EvidenceRefs = appendUniqueStrings(result.EvidenceRefs, pathEvidenceRefs(runtimeBOMPath)...)
-	result.Missing = append(result.Missing, runtimeBOMPath.Missing...)
+	result.Missing = appendUniqueStrings(result.Missing, runtimeBOMPath.Missing...)
 	if len(runtimeBOMPath.NodeIDs) > 1 {
 		result.FactoryRuntimeVersionRefs = appendUniqueStrings(result.FactoryRuntimeVersionRefs, runtimeBOMPath.NodeIDs[len(runtimeBOMPath.NodeIDs)-1])
 	}
