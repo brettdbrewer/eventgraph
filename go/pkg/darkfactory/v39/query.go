@@ -310,6 +310,117 @@ func (s *InMemoryStore) ReleaseCandidateCertificationOrRejection(releaseCandidat
 	return path, path.Err()
 }
 
+func (s *InMemoryStore) EvaluateTraceCompletenessGate(factoryOrderOrReleaseCandidateID string) (TraceCompletenessGateResult, error) {
+	factoryOrderID := factoryOrderOrReleaseCandidateID
+	var releaseCandidateID *string
+	if rc, ok := s.mustGetReleaseCandidate(factoryOrderOrReleaseCandidateID); ok {
+		factoryOrderID = rc.FactoryOrderID
+		releaseCandidateID = &rc.CommonNode.ID
+	}
+
+	result := TraceCompletenessGateResult{
+		FactoryOrderID:     factoryOrderID,
+		ReleaseCandidateID: releaseCandidateID,
+		Status:             TraceCompletenessFailed,
+	}
+
+	orderPath, _ := s.FactoryOrderRequirementAcceptanceTask(factoryOrderID)
+	result.addRequiredPath(orderPath)
+
+	for _, taskID := range taskIDsFromPath(s, orderPath) {
+		runtimePath, _ := s.TaskRuntimeEnvelopeResult(taskID)
+		result.addRequiredPath(runtimePath)
+
+		artifactPath, _ := s.TaskArtifact(taskID)
+		result.addRequiredPath(artifactPath)
+
+		gatePath, _ := s.TaskTestCaseRunGateResult(taskID)
+		result.addRequiredPath(gatePath)
+		if gatePath.Completed && len(gatePath.NodeIDs) > 0 {
+			gateID := gatePath.NodeIDs[len(gatePath.NodeIDs)-1]
+			if gate, ok := s.mustGetGateResult(gateID); ok && gateResultNeedsFailureRepairWaiver(gate) {
+				failureRepairPath, _ := s.GateResultFailureRepairWaiver(gateID)
+				result.addRequiredPath(failureRepairPath)
+			}
+		}
+	}
+
+	runtimeVersionPath, _ := s.FactoryRuntimeVersionPath(factoryOrderOrReleaseCandidateID)
+	result.addRequiredPath(runtimeVersionPath)
+
+	result.Completed = len(result.Missing) == 0
+	if result.Completed {
+		result.Status = TraceCompletenessPassed
+		return result, nil
+	}
+	return result, fmt.Errorf("%w: TraceCompletenessGate: %v", ErrRequiredPathMissing, result.Missing)
+}
+
+func (s *InMemoryStore) EvaluateCertificationEligibility(releaseCandidateID string) (CertificationEligibilityResult, error) {
+	result := CertificationEligibilityResult{ReleaseCandidateID: releaseCandidateID}
+	rc, ok := s.mustGetReleaseCandidate(releaseCandidateID)
+	if !ok {
+		result.Missing = append(result.Missing, "ReleaseCandidate "+releaseCandidateID)
+		return result, fmt.Errorf("%w: certification eligibility: %v", ErrRequiredPathMissing, result.Missing)
+	}
+	result.FactoryOrderID = rc.FactoryOrderID
+	result.FactoryRuntimeVersionID = rc.FactoryRuntimeVersionID
+
+	trace, _ := s.EvaluateTraceCompletenessGate(releaseCandidateID)
+	result.TraceCompleteness = trace
+	result.EvidenceRefs = appendUniqueStrings(result.EvidenceRefs, trace.EvidenceRefs...)
+	result.Missing = append(result.Missing, trace.Missing...)
+
+	runtimeBOMPath, _ := s.FactoryRuntimeBOMEvidencePath(releaseCandidateID)
+	result.RuntimeBOMPath = runtimeBOMPath
+	result.EvidenceRefs = appendUniqueStrings(result.EvidenceRefs, pathEvidenceRefs(runtimeBOMPath)...)
+	result.Missing = append(result.Missing, runtimeBOMPath.Missing...)
+	if len(runtimeBOMPath.NodeIDs) > 1 {
+		result.FactoryRuntimeVersionRefs = appendUniqueStrings(result.FactoryRuntimeVersionRefs, runtimeBOMPath.NodeIDs[len(runtimeBOMPath.NodeIDs)-1])
+	}
+
+	result.Completed = trace.Completed && runtimeBOMPath.Completed && len(result.Missing) == 0
+	if result.Completed {
+		return result, nil
+	}
+	return result, fmt.Errorf("%w: certification eligibility: %v", ErrRequiredPathMissing, result.Missing)
+}
+
+func (s *InMemoryStore) FactoryRuntimeBOMEvidencePath(factoryOrderOrReleaseCandidateID string) (RequiredPath, error) {
+	path, _ := s.FactoryRuntimeVersionPath(factoryOrderOrReleaseCandidateID)
+	path.Name = "FactoryOrder or ReleaseCandidate -> FactoryRuntimeVersion BOM"
+	if path.Completed && len(path.NodeIDs) > 0 {
+		frvID := path.NodeIDs[len(path.NodeIDs)-1]
+		frv, ok := s.mustGetFactoryRuntimeVersion(frvID)
+		if !ok {
+			path.Completed = false
+			path.Missing = append(path.Missing, "FactoryRuntimeVersion "+frvID)
+		} else if len(frv.RuntimeRefs) == 0 {
+			path.Completed = false
+			path.Missing = append(path.Missing, "RuntimeRefs for FactoryRuntimeVersion "+frvID)
+		}
+	}
+	return path, path.Err()
+}
+
+func (s *InMemoryStore) RecordFactoryRuntimeVersionBOM(version *FactoryRuntimeVersion) (*FactoryRuntimeVersion, error) {
+	if version == nil {
+		return nil, fmt.Errorf("%w: nil FactoryRuntimeVersion", ErrInvalidRecord)
+	}
+	if len(version.RuntimeRefs) == 0 {
+		return nil, fieldError(TypeFactoryRuntimeVersion, "runtime_refs", "required for runtime BOM")
+	}
+	stored, err := s.AppendRecord(version)
+	if err != nil {
+		return nil, err
+	}
+	frv, ok := stored.(*FactoryRuntimeVersion)
+	if !ok {
+		return nil, fmt.Errorf("%w: FactoryRuntimeVersion append returned %T", ErrInvalidRecord, stored)
+	}
+	return frv, nil
+}
+
 func (s *InMemoryStore) DecisionAuditReport(decisionID string) (RequiredPath, error) {
 	path, err := s.QueryRequiredPath(decisionID, EdgeAuditedBy)
 	path.Name = "Certification/Rejection -> AuditReport"
@@ -592,6 +703,46 @@ func (s *InMemoryStore) mustGetAuditReport(id string) (*AuditReport, bool) {
 	}
 	audit, ok := r.(*AuditReport)
 	return audit, ok
+}
+
+func (r *TraceCompletenessGateResult) addRequiredPath(path RequiredPath) {
+	r.RequiredPaths = append(r.RequiredPaths, path)
+	r.Missing = append(r.Missing, path.Missing...)
+	r.EvidenceRefs = appendUniqueStrings(r.EvidenceRefs, pathEvidenceRefs(path)...)
+}
+
+func taskIDsFromPath(s *InMemoryStore, path RequiredPath) []string {
+	var taskIDs []string
+	for _, nodeID := range path.NodeIDs {
+		if _, ok := s.mustGetTask(nodeID); ok {
+			taskIDs = appendUniqueStrings(taskIDs, nodeID)
+		}
+	}
+	return taskIDs
+}
+
+func gateResultNeedsFailureRepairWaiver(gate *GateResult) bool {
+	if gate.WaiverRef != nil && *gate.WaiverRef != "" {
+		return true
+	}
+	return gate.CommonNode.Status != nil && *gate.CommonNode.Status == "fail"
+}
+
+func pathEvidenceRefs(path RequiredPath) []string {
+	refs := make([]string, 0, len(path.NodeIDs)+len(path.EdgeIDs))
+	refs = append(refs, path.NodeIDs...)
+	refs = append(refs, path.EdgeIDs...)
+	return refs
+}
+
+func appendUniqueStrings(values []string, candidates ...string) []string {
+	for _, candidate := range candidates {
+		if candidate == "" || containsString(values, candidate) {
+			continue
+		}
+		values = append(values, candidate)
+	}
+	return values
 }
 
 func containsString(values []string, want string) bool {

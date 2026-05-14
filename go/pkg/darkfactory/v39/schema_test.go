@@ -203,6 +203,128 @@ func TestRequiredPathQueriesCompleteAndMissingEvidence(t *testing.T) {
 	}
 }
 
+func TestTraceCompletenessGateCompleteTracePasses(t *testing.T) {
+	store := completePathStore(t)
+
+	result, err := store.EvaluateTraceCompletenessGate("rc_001")
+	if err != nil {
+		t.Fatalf("expected complete trace, got result=%+v err=%v", result, err)
+	}
+	if !result.Completed || result.Status != TraceCompletenessPassed {
+		t.Fatalf("trace completeness did not pass: %+v", result)
+	}
+	if result.FactoryOrderID != "fo_001" || result.ReleaseCandidateID == nil || *result.ReleaseCandidateID != "rc_001" {
+		t.Fatalf("trace target mismatch: %+v", result)
+	}
+	for _, want := range []string{"fo_001", "tsk_001", "env_001", "rr_001", "art_001", "tr_001", "gate_001", "frv_001"} {
+		if !containsString(result.EvidenceRefs, want) {
+			t.Fatalf("missing evidence ref %s in %+v", want, result.EvidenceRefs)
+		}
+	}
+}
+
+func TestTraceCompletenessGateMissingRuntimeEnvelopeResultFails(t *testing.T) {
+	store := completePathStore(t)
+	deleteRecord(store, "rr_001")
+
+	result, err := store.EvaluateTraceCompletenessGate("rc_001")
+	if !errors.Is(err, ErrRequiredPathMissing) {
+		t.Fatalf("expected missing required path, got result=%+v err=%v", result, err)
+	}
+	if result.Completed || result.Status != TraceCompletenessFailed {
+		t.Fatalf("trace completeness unexpectedly passed: %+v", result)
+	}
+	if !containsString(result.Missing, "RuntimeResult rr_001") {
+		t.Fatalf("missing runtime result not reported: %+v", result.Missing)
+	}
+}
+
+func TestTraceCompletenessGateMissingArtifactOrGateEvidenceFails(t *testing.T) {
+	t.Run("artifact", func(t *testing.T) {
+		store := completePathStore(t)
+		deleteRecord(store, "art_001")
+
+		result, err := store.EvaluateTraceCompletenessGate("rc_001")
+		if !errors.Is(err, ErrRequiredPathMissing) {
+			t.Fatalf("expected missing artifact path, got result=%+v err=%v", result, err)
+		}
+		if !containsString(result.Missing, "Artifact for Task tsk_001") {
+			t.Fatalf("missing artifact not reported: %+v", result.Missing)
+		}
+	})
+
+	t.Run("test gate", func(t *testing.T) {
+		store := completePathStore(t)
+		deleteRecord(store, "gate_001")
+
+		result, err := store.EvaluateTraceCompletenessGate("rc_001")
+		if !errors.Is(err, ErrRequiredPathMissing) {
+			t.Fatalf("expected missing gate path, got result=%+v err=%v", result, err)
+		}
+		if !containsString(result.Missing, "GateResult gate_001") {
+			t.Fatalf("missing gate result not reported: %+v", result.Missing)
+		}
+	})
+}
+
+func TestCertificationEligibilityRequiresRuntimeBOM(t *testing.T) {
+	store := completePathStore(t)
+	frv := store.records["frv_001"].(*FactoryRuntimeVersion)
+	frv.RuntimeRefs = nil
+
+	result, err := store.EvaluateCertificationEligibility("rc_001")
+	if !errors.Is(err, ErrRequiredPathMissing) {
+		t.Fatalf("expected missing runtime BOM, got result=%+v err=%v", result, err)
+	}
+	if result.Completed {
+		t.Fatalf("certification eligibility unexpectedly passed: %+v", result)
+	}
+	if !containsString(result.Missing, "RuntimeRefs for FactoryRuntimeVersion frv_001") {
+		t.Fatalf("missing runtime BOM not reported: %+v", result.Missing)
+	}
+}
+
+func TestCertificationEligibilityCompleteTraceAndRuntimeBOMPasses(t *testing.T) {
+	store := completePathStore(t)
+
+	result, err := store.EvaluateCertificationEligibility("rc_001")
+	if err != nil {
+		t.Fatalf("expected certification eligibility, got result=%+v err=%v", result, err)
+	}
+	if !result.Completed || !result.TraceCompleteness.Completed || !result.RuntimeBOMPath.Completed {
+		t.Fatalf("certification eligibility did not pass: %+v", result)
+	}
+	if result.FactoryRuntimeVersionID == nil || *result.FactoryRuntimeVersionID != "frv_001" {
+		t.Fatalf("runtime version mismatch: %+v", result)
+	}
+	if !containsString(result.EvidenceRefs, "frv_001") {
+		t.Fatalf("runtime BOM evidence missing from refs: %+v", result.EvidenceRefs)
+	}
+}
+
+func TestRecordFactoryRuntimeVersionBOMRequiresRuntimeRefs(t *testing.T) {
+	store := NewInMemoryStore()
+	_, err := store.RecordFactoryRuntimeVersionBOM(&FactoryRuntimeVersion{
+		CommonNode:     common("frv_empty", TypeFactoryRuntimeVersion, "active"),
+		RuntimeVersion: "3.9.0",
+	})
+	if !errors.Is(err, ErrInvalidRecord) {
+		t.Fatalf("expected invalid runtime BOM, got %v", err)
+	}
+
+	recorded, err := store.RecordFactoryRuntimeVersionBOM(&FactoryRuntimeVersion{
+		CommonNode:     common("frv_recorded", TypeFactoryRuntimeVersion, "active"),
+		RuntimeVersion: "3.9.0",
+		RuntimeRefs:    []string{"local@0.1.0"},
+	})
+	if err != nil {
+		t.Fatalf("expected runtime BOM recording, got %v", err)
+	}
+	if recorded.CommonNode.ID != "frv_recorded" || !containsString(recorded.RuntimeRefs, "local@0.1.0") {
+		t.Fatalf("unexpected recorded runtime BOM: %+v", recorded)
+	}
+}
+
 func assertPath(t *testing.T, path RequiredPath, err error, want ...string) {
 	t.Helper()
 	if err != nil {
@@ -260,6 +382,11 @@ func appendEdge(t *testing.T, store *InMemoryStore, edge CommonEdge) {
 	if _, err := store.AppendEdge(edge); err != nil {
 		t.Fatalf("append edge %s: %v", edge.ID, err)
 	}
+}
+
+func deleteRecord(store *InMemoryStore, id string) {
+	delete(store.records, id)
+	delete(store.canonicalByID, id)
 }
 
 func completeTier0Records() []Record {
