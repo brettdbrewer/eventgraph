@@ -106,6 +106,34 @@ func DefaultResolver() *Resolver {
 	return defaultResolver
 }
 
+// DefaultResolverWithModel returns a resolver where every role and
+// every tier query resolves to the named model. Used by the council
+// COUNCIL_MODEL legacy fallback. The model name must resolve via the
+// built-in catalog's alias table (e.g., "opus", "sonnet", "haiku" or
+// a full id like "claude-opus-4-6"). Returns an error if unknown.
+//
+// The returned resolver is independent of the package-level
+// DefaultResolver singleton — mutating it does not affect other
+// callers.
+func DefaultResolverWithModel(modelNameOrAlias string) (*Resolver, error) {
+	catalog := DefaultCatalog()
+	entry, ok := catalog.Lookup(modelNameOrAlias)
+	if !ok {
+		return nil, fmt.Errorf("DefaultResolverWithModel: %q is not a known model id or alias", modelNameOrAlias)
+	}
+	defaults := ResolverDefaults{
+		Provider: entry.Provider,
+		Model:    entry.ID,
+		TierModels: map[ModelTier]string{
+			TierJudgment:  entry.ID,
+			TierExecution: entry.ID,
+			TierVolume:    entry.ID,
+		},
+		RoleModels: nil,
+	}
+	return NewResolver(catalog, defaultProfiles, defaults), nil
+}
+
 // ResolverFromCatalogFile builds a Resolver by parsing catalogPath and merging
 // its entries on top of the embedded defaults. User entries with the same model
 // ID replace embedded ones; new IDs are appended. role_defaults, tier_defaults,
