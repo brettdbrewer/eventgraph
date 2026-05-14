@@ -310,6 +310,16 @@ func (s *InMemoryStore) ReleaseCandidateCertificationOrRejection(releaseCandidat
 	return path, path.Err()
 }
 
+func (s *InMemoryStore) ReleaseCandidateArtifactEvidencePath(releaseCandidateID string) (RequiredPath, error) {
+	rc, ok := s.mustGetReleaseCandidate(releaseCandidateID)
+	if !ok {
+		path := RequiredPath{Name: "ReleaseCandidate -> packaged Artifact evidence", NodeIDs: []string{releaseCandidateID}}
+		path.Missing = append(path.Missing, "ReleaseCandidate "+releaseCandidateID)
+		return path, path.Err()
+	}
+	return s.releaseCandidateArtifactEvidencePath(rc)
+}
+
 func (s *InMemoryStore) EvaluateTraceCompletenessGate(factoryOrderOrReleaseCandidateID string) (TraceCompletenessGateResult, error) {
 	factoryOrderID := factoryOrderOrReleaseCandidateID
 	var releaseCandidateID *string
@@ -435,6 +445,49 @@ func (s *InMemoryStore) DecisionAuditReport(decisionID string) (RequiredPath, er
 	return path, nil
 }
 
+func (s *InMemoryStore) releaseCandidateArtifactEvidencePath(candidate *ReleaseCandidate) (RequiredPath, error) {
+	path := RequiredPath{Name: "ReleaseCandidate -> packaged Artifact evidence", NodeIDs: []string{candidate.CommonNode.ID}}
+	if len(candidate.ArtifactRefs) == 0 {
+		path.Missing = append(path.Missing, "ArtifactRefs for ReleaseCandidate "+candidate.CommonNode.ID)
+		return path, path.Err()
+	}
+
+	orderPath, _ := s.FactoryOrderRequirementAcceptanceTask(candidate.FactoryOrderID)
+	path.EdgeIDs = append(path.EdgeIDs, orderPath.EdgeIDs...)
+	path.Missing = append(path.Missing, orderPath.Missing...)
+	taskIDs := taskIDsFromPath(s, orderPath)
+
+	for _, artifactID := range candidate.ArtifactRefs {
+		if artifactID == "" {
+			path.Missing = append(path.Missing, "ArtifactRef for ReleaseCandidate "+candidate.CommonNode.ID)
+			continue
+		}
+		artifact, ok := s.mustGetArtifact(artifactID)
+		if !ok {
+			path.Missing = append(path.Missing, "Artifact "+artifactID)
+			continue
+		}
+		if artifact.TaskID == nil || *artifact.TaskID == "" {
+			path.Missing = append(path.Missing, "Task for packaged Artifact "+artifactID)
+			continue
+		}
+		if !containsString(taskIDs, *artifact.TaskID) {
+			path.Missing = append(path.Missing, "Task "+*artifact.TaskID+" in FactoryOrder "+candidate.FactoryOrderID+" trace for packaged Artifact "+artifactID)
+			continue
+		}
+		edge, ok := s.producedArtifactEdge(*artifact.TaskID, artifactID)
+		if !ok {
+			path.Missing = append(path.Missing, "PRODUCED from Task "+*artifact.TaskID+" to packaged Artifact "+artifactID)
+			continue
+		}
+		path.EdgeIDs = appendUniqueStrings(path.EdgeIDs, edge.ID)
+		path.NodeIDs = appendUniqueStrings(path.NodeIDs, *artifact.TaskID, artifact.CommonNode.ID)
+	}
+
+	path.Completed = len(path.Missing) == 0
+	return path, path.Err()
+}
+
 func (s *InMemoryStore) AuthorityRequestDecisionReceipt(authorityRequestID string) (RequiredPath, error) {
 	path := RequiredPath{Name: "AuthorityRequest -> AuthorityDecision -> ExecutionReceipt", NodeIDs: []string{authorityRequestID}}
 	decisionEdge, ok := s.firstOutgoingEdge(authorityRequestID, EdgeDecidedBy)
@@ -519,6 +572,15 @@ func (s *InMemoryStore) outgoingEdges(fromID, edgeType string) []CommonEdge {
 	return out
 }
 
+func (s *InMemoryStore) producedArtifactEdge(taskID, artifactID string) (CommonEdge, bool) {
+	for _, edge := range s.outgoingEdges(taskID, EdgeProduced) {
+		if edge.ToID == artifactID {
+			return edge, true
+		}
+	}
+	return CommonEdge{}, false
+}
+
 func (s *InMemoryStore) hasActorIdentity(actorID string) bool {
 	_, ok := s.actorIdentityForActor(actorID)
 	return ok
@@ -532,6 +594,15 @@ func (s *InMemoryStore) actorIdentityForActor(actorID string) (*ActorIdentity, b
 		}
 	}
 	return nil, false
+}
+
+func (s *InMemoryStore) mustGetFactoryOrder(id string) (*FactoryOrder, bool) {
+	r, err := s.Get(id)
+	if err != nil {
+		return nil, false
+	}
+	order, ok := r.(*FactoryOrder)
+	return order, ok
 }
 
 func (s *InMemoryStore) mustGetRequirement(id string) (*Requirement, bool) {
