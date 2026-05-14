@@ -203,6 +203,168 @@ func TestRequiredPathQueriesCompleteAndMissingEvidence(t *testing.T) {
 	}
 }
 
+func TestTraceCompletenessGateCompleteTracePasses(t *testing.T) {
+	store := completePathStore(t)
+
+	result, err := store.EvaluateTraceCompletenessGate("rc_001")
+	if err != nil {
+		t.Fatalf("expected complete trace, got result=%+v err=%v", result, err)
+	}
+	if !result.Completed || result.Status != TraceCompletenessPassed {
+		t.Fatalf("trace completeness did not pass: %+v", result)
+	}
+	if result.FactoryOrderID != "fo_001" || result.ReleaseCandidateID == nil || *result.ReleaseCandidateID != "rc_001" {
+		t.Fatalf("trace target mismatch: %+v", result)
+	}
+	for _, want := range []string{"fo_001", "tsk_001", "env_001", "rr_001", "art_001", "tr_001", "gate_001", "frv_001"} {
+		if !containsString(result.EvidenceRefs, want) {
+			t.Fatalf("missing evidence ref %s in %+v", want, result.EvidenceRefs)
+		}
+	}
+}
+
+func TestTraceCompletenessGateMissingRuntimeEnvelopeResultFails(t *testing.T) {
+	store := completePathStore(t)
+	deleteRecord(store, "rr_001")
+
+	result, err := store.EvaluateTraceCompletenessGate("rc_001")
+	if !errors.Is(err, ErrRequiredPathMissing) {
+		t.Fatalf("expected missing required path, got result=%+v err=%v", result, err)
+	}
+	if result.Completed || result.Status != TraceCompletenessFailed {
+		t.Fatalf("trace completeness unexpectedly passed: %+v", result)
+	}
+	if !containsString(result.Missing, "RuntimeResult rr_001") {
+		t.Fatalf("missing runtime result not reported: %+v", result.Missing)
+	}
+}
+
+func TestTraceCompletenessGateMissingArtifactOrGateEvidenceFails(t *testing.T) {
+	t.Run("artifact", func(t *testing.T) {
+		store := completePathStore(t)
+		deleteRecord(store, "art_001")
+
+		result, err := store.EvaluateTraceCompletenessGate("rc_001")
+		if !errors.Is(err, ErrRequiredPathMissing) {
+			t.Fatalf("expected missing artifact path, got result=%+v err=%v", result, err)
+		}
+		if !containsString(result.Missing, "Artifact for Task tsk_001") {
+			t.Fatalf("missing artifact not reported: %+v", result.Missing)
+		}
+	})
+
+	t.Run("test gate", func(t *testing.T) {
+		store := completePathStore(t)
+		deleteRecord(store, "gate_001")
+
+		result, err := store.EvaluateTraceCompletenessGate("rc_001")
+		if !errors.Is(err, ErrRequiredPathMissing) {
+			t.Fatalf("expected missing gate path, got result=%+v err=%v", result, err)
+		}
+		if !containsString(result.Missing, "GateResult gate_001") {
+			t.Fatalf("missing gate result not reported: %+v", result.Missing)
+		}
+	})
+}
+
+func TestTraceCompletenessGateEvaluatesFailingGateRepairPath(t *testing.T) {
+	store := completePathStoreWithEvaluatedGate(t, "gate_fail_001")
+
+	result, err := store.EvaluateTraceCompletenessGate("rc_001")
+	if err != nil {
+		t.Fatalf("expected complete trace including failure repair evidence, got result=%+v err=%v", result, err)
+	}
+	if !result.Completed {
+		t.Fatalf("trace completeness did not pass: %+v", result)
+	}
+
+	var found bool
+	for _, path := range result.RequiredPaths {
+		if path.Name == "GateResult -> Failure / RepairAttempt / Waiver" {
+			found = true
+			assertPath(t, path, nil, "gate_fail_001", "fail_001", "rep_001")
+		}
+	}
+	if !found {
+		t.Fatalf("failing gate repair path was not evaluated: %+v", result.RequiredPaths)
+	}
+}
+
+func TestCertificationEligibilityIncompleteTraceFails(t *testing.T) {
+	store := completePathStore(t)
+	deleteRecord(store, "rr_001")
+
+	result, err := store.EvaluateCertificationEligibility("rc_001")
+	if !errors.Is(err, ErrRequiredPathMissing) {
+		t.Fatalf("expected missing required path, got result=%+v err=%v", result, err)
+	}
+	if result.Completed {
+		t.Fatalf("certification eligibility unexpectedly passed: %+v", result)
+	}
+	if result.TraceCompleteness.Completed {
+		t.Fatalf("trace completeness unexpectedly passed: %+v", result.TraceCompleteness)
+	}
+	if !containsString(result.Missing, "RuntimeResult rr_001") {
+		t.Fatalf("missing runtime result not reported: %+v", result.Missing)
+	}
+}
+
+func TestCertificationEligibilityRequiresRuntimeBOM(t *testing.T) {
+	store := completePathStoreWithoutRuntimeBOM(t)
+
+	result, err := store.EvaluateCertificationEligibility("rc_001")
+	if !errors.Is(err, ErrRequiredPathMissing) {
+		t.Fatalf("expected missing runtime BOM, got result=%+v err=%v", result, err)
+	}
+	if result.Completed {
+		t.Fatalf("certification eligibility unexpectedly passed: %+v", result)
+	}
+	if !containsString(result.Missing, "RuntimeRefs for FactoryRuntimeVersion frv_001") {
+		t.Fatalf("missing runtime BOM not reported: %+v", result.Missing)
+	}
+}
+
+func TestCertificationEligibilityCompleteTraceAndRuntimeBOMPasses(t *testing.T) {
+	store := completePathStore(t)
+
+	result, err := store.EvaluateCertificationEligibility("rc_001")
+	if err != nil {
+		t.Fatalf("expected certification eligibility, got result=%+v err=%v", result, err)
+	}
+	if !result.Completed || !result.TraceCompleteness.Completed || !result.RuntimeBOMPath.Completed {
+		t.Fatalf("certification eligibility did not pass: %+v", result)
+	}
+	if result.FactoryRuntimeVersionID == nil || *result.FactoryRuntimeVersionID != "frv_001" {
+		t.Fatalf("runtime version mismatch: %+v", result)
+	}
+	if !containsString(result.EvidenceRefs, "frv_001") {
+		t.Fatalf("runtime BOM evidence missing from refs: %+v", result.EvidenceRefs)
+	}
+}
+
+func TestRecordFactoryRuntimeVersionBOMRequiresRuntimeRefs(t *testing.T) {
+	store := NewInMemoryStore()
+	_, err := store.RecordFactoryRuntimeVersionBOM(&FactoryRuntimeVersion{
+		CommonNode:     common("frv_empty", TypeFactoryRuntimeVersion, "active"),
+		RuntimeVersion: "3.9.0",
+	})
+	if !errors.Is(err, ErrInvalidRecord) {
+		t.Fatalf("expected invalid runtime BOM, got %v", err)
+	}
+
+	recorded, err := store.RecordFactoryRuntimeVersionBOM(&FactoryRuntimeVersion{
+		CommonNode:     common("frv_recorded", TypeFactoryRuntimeVersion, "active"),
+		RuntimeVersion: "3.9.0",
+		RuntimeRefs:    []string{"local@0.1.0"},
+	})
+	if err != nil {
+		t.Fatalf("expected runtime BOM recording, got %v", err)
+	}
+	if recorded.CommonNode.ID != "frv_recorded" || !containsString(recorded.RuntimeRefs, "local@0.1.0") {
+		t.Fatalf("unexpected recorded runtime BOM: %+v", recorded)
+	}
+}
+
 func assertPath(t *testing.T, path RequiredPath, err error, want ...string) {
 	t.Helper()
 	if err != nil {
@@ -227,6 +389,12 @@ func completePathStore(t *testing.T) *InMemoryStore {
 	for _, record := range completeTier0Records() {
 		appendRecord(t, store, record)
 	}
+	appendCompletePathEdges(t, store, "gate_001")
+	return store
+}
+
+func appendCompletePathEdges(t *testing.T, store *InMemoryStore, evaluatedGateID string) {
+	t.Helper()
 	appendEdge(t, store, edge("edge_fo_req", EdgeRequires, "fo_001", "req_001"))
 	appendEdge(t, store, edge("edge_req_ac", EdgeRequires, "req_001", "ac_001"))
 	appendEdge(t, store, edge("edge_ac_task", EdgeDecomposedInto, "ac_001", "tsk_001"))
@@ -235,7 +403,7 @@ func completePathStore(t *testing.T) *InMemoryStore {
 	appendEdge(t, store, edge("edge_task_art", EdgeProduced, "tsk_001", "art_001"))
 	appendEdge(t, store, edge("edge_task_tc", EdgeVerifies, "tsk_001", "tc_001"))
 	appendEdge(t, store, edge("edge_tc_tr", EdgeVerifies, "tc_001", "tr_001"))
-	appendEdge(t, store, edge("edge_tr_gate", EdgeProduced, "tr_001", "gate_001"))
+	appendEdge(t, store, edge("edge_tr_gate", EdgeProduced, "tr_001", evaluatedGateID))
 	appendEdge(t, store, edge("edge_gate_failure", EdgeFailedBy, "gate_fail_001", "fail_001"))
 	appendEdge(t, store, edge("edge_failure_repair", EdgeRepairedBy, "fail_001", "rep_001"))
 	appendEdge(t, store, edge("edge_fo_rc", EdgePackagedAs, "fo_001", "rc_001"))
@@ -245,7 +413,6 @@ func completePathStore(t *testing.T) *InMemoryStore {
 	appendEdge(t, store, edge("edge_actor_auth_req", EdgeRequestedAuthority, "actor_identity_001", "auth_req_001"))
 	appendEdge(t, store, edge("edge_auth_req_dec", EdgeDecidedBy, "auth_req_001", "auth_dec_001"))
 	appendEdge(t, store, edge("edge_auth_dec_exec", EdgeReceiptedBy, "auth_dec_001", "exec_001"))
-	return store
 }
 
 func appendRecord(t *testing.T, store *InMemoryStore, record Record) {
@@ -260,6 +427,34 @@ func appendEdge(t *testing.T, store *InMemoryStore, edge CommonEdge) {
 	if _, err := store.AppendEdge(edge); err != nil {
 		t.Fatalf("append edge %s: %v", edge.ID, err)
 	}
+}
+
+func completePathStoreWithoutRuntimeBOM(t *testing.T) *InMemoryStore {
+	t.Helper()
+	store := NewInMemoryStore()
+	for _, record := range completeTier0Records() {
+		if frv, ok := record.(*FactoryRuntimeVersion); ok && frv.CommonNode.ID == "frv_001" {
+			frv.RuntimeRefs = nil
+		}
+		appendRecord(t, store, record)
+	}
+	appendCompletePathEdges(t, store, "gate_001")
+	return store
+}
+
+func completePathStoreWithEvaluatedGate(t *testing.T, gateID string) *InMemoryStore {
+	t.Helper()
+	store := NewInMemoryStore()
+	for _, record := range completeTier0Records() {
+		appendRecord(t, store, record)
+	}
+	appendCompletePathEdges(t, store, gateID)
+	return store
+}
+
+func deleteRecord(store *InMemoryStore, id string) {
+	delete(store.records, id)
+	delete(store.canonicalByID, id)
 }
 
 func completeTier0Records() []Record {

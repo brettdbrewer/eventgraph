@@ -255,6 +255,35 @@ type GateResult struct {
 	WaiverRef          *string  `json:"waiver_ref,omitempty"`
 }
 
+type TraceCompletenessStatus string
+
+const (
+	TraceCompletenessPassed TraceCompletenessStatus = "passed"
+	TraceCompletenessFailed TraceCompletenessStatus = "failed"
+)
+
+type TraceCompletenessGateResult struct {
+	FactoryOrderID     string                  `json:"factory_order_id"`
+	ReleaseCandidateID *string                 `json:"release_candidate_id,omitempty"`
+	Status             TraceCompletenessStatus `json:"status"`
+	Completed          bool                    `json:"completed"`
+	RequiredPaths      []RequiredPath          `json:"required_paths"`
+	Missing            []string                `json:"missing,omitempty"`
+	EvidenceRefs       []string                `json:"evidence_refs"`
+}
+
+type CertificationEligibilityResult struct {
+	ReleaseCandidateID        string                      `json:"release_candidate_id"`
+	FactoryOrderID            string                      `json:"factory_order_id"`
+	Completed                 bool                        `json:"completed"`
+	TraceCompleteness         TraceCompletenessGateResult `json:"trace_completeness"`
+	RuntimeBOMPath            RequiredPath                `json:"runtime_bom_path"`
+	Missing                   []string                    `json:"missing,omitempty"`
+	EvidenceRefs              []string                    `json:"evidence_refs"`
+	FactoryRuntimeVersionID   *string                     `json:"factory_runtime_version_id,omitempty"`
+	FactoryRuntimeVersionRefs []string                    `json:"factory_runtime_version_refs,omitempty"`
+}
+
 type Failure struct {
 	CommonNode
 	FactoryOrderID *string `json:"factory_order_id,omitempty"`
